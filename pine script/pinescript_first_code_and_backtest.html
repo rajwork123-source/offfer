@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pine Script First Code & Backtest Tutorial</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Syne:wght@400;500;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0d0f;
+    --bg2: #141417;
+    --bg3: #1c1c21;
+    --bg4: #24242b;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.13);
+    --text: #f0f0f4;
+    --text2: #9494a8;
+    --text3: #5a5a6e;
+    --accent: #2962ff;
+    --accent2: #5c8aff;
+    --accent-bg: rgba(41,98,255,0.12);
+    --accent-border: rgba(41,98,255,0.3);
+    --green: #3ecf8e;
+    --green-bg: rgba(62,207,142,0.1);
+    --green-border: rgba(62,207,142,0.25);
+    --amber: #f5a623;
+    --amber-bg: rgba(245,166,35,0.1);
+    --amber-border: rgba(245,166,35,0.25);
+    --red: #f56565;
+    --red-bg: rgba(245,101,101,0.1);
+    --red-border: rgba(245,101,101,0.25);
+    --mono: 'JetBrains Mono', monospace;
+    --head: 'Syne', sans-serif;
+    --body: 'DM Sans', sans-serif;
+    --radius: 10px;
+    --radius-lg: 16px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body { font-family: var(--body); background: var(--bg); color: var(--text); min-height: 100vh; font-size: 15px; line-height: 1.6; }
+  .app { display: flex; min-height: 100vh; }
+
+  .sidebar {
+    width: 260px; background: var(--bg2);
+    border-right: 1px solid var(--border);
+    position: fixed; top: 0; left: 0; bottom: 0;
+    overflow-y: auto; z-index: 100; display: flex; flex-direction: column;
+  }
+  .logo { padding: 24px 20px 16px; border-bottom: 1px solid var(--border); }
+  .logo-title { font-family: var(--head); font-size: 16px; font-weight: 700; color: var(--text); letter-spacing: -0.01em; }
+  .logo-sub { font-size: 11px; color: var(--text3); margin-top: 2px; text-transform: uppercase; letter-spacing: 0.08em; }
+
+  .chapter-group { padding: 10px 12px; }
+  .chapter-heading { font-size: 10px; font-weight: 500; color: var(--text3); text-transform: uppercase; letter-spacing: 0.1em; padding: 0 8px; margin-bottom: 4px; }
+  .chapter-item {
+    display: block; width: 100%; padding: 8px 12px; border-radius: 8px;
+    border: none; background: transparent; color: var(--text3);
+    font-family: var(--body); font-size: 12.5px; cursor: pointer;
+    text-align: left; transition: all 0.15s; margin-bottom: 2px;
+  }
+  .chapter-item:hover { background: var(--bg3); color: var(--text2); }
+  .chapter-item.active { color: var(--accent2); background: var(--accent-bg); }
+
+  .progress-section { margin-top: auto; padding: 16px; border-top: 1px solid var(--border); }
+  .progress-label { font-size: 11px; color: var(--text3); margin-bottom: 8px; display: flex; justify-content: space-between; }
+  .progress-bar-wrap { height: 4px; background: var(--bg4); border-radius: 2px; overflow: hidden; }
+  .progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--green)); border-radius: 2px; transition: width 0.4s; }
+
+  .main { margin-left: 260px; flex: 1; min-height: 100vh; }
+  .topbar {
+    background: var(--bg2); border-bottom: 1px solid var(--border);
+    padding: 16px 32px; display: flex; align-items: center;
+    justify-content: space-between; position: sticky; top: 0; z-index: 50;
+  }
+  .topbar-left { display: flex; align-items: center; gap: 12px; }
+  .topbar-title { font-family: var(--head); font-size: 17px; font-weight: 700; }
+  .badge { font-size: 11px; padding: 3px 10px; border-radius: 999px; font-weight: 500; border: 1px solid transparent; }
+  .badge-tutorial { background: var(--accent-bg); color: var(--accent2); border-color: var(--accent-border); }
+  .badge-step { background: var(--green-bg); color: var(--green); border-color: var(--green-border); }
+
+  .topbar-right { display: flex; align-items: center; gap: 10px; }
+  .nav-btn {
+    padding: 7px 16px; border-radius: var(--radius); border: 1px solid var(--border2);
+    background: transparent; color: var(--text2); font-family: var(--body);
+    font-size: 13px; cursor: pointer; transition: all 0.15s;
+  }
+  .nav-btn:hover { border-color: var(--accent2); color: var(--accent2); }
+  .nav-btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .nav-btn.primary:hover { opacity: 0.85; }
+
+  .content { padding: 40px 40px 100px; max-width: 860px; }
+
+  .section { display: none; }
+  .section.active { display: block; animation: fadeIn 0.25s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+
+  .section-hero { margin-bottom: 36px; }
+  .section-eyebrow {
+    font-size: 11px; font-weight: 500; color: var(--accent2);
+    text-transform: uppercase; letter-spacing: 0.1em;
+    margin-bottom: 12px; display: flex; align-items: center; gap: 8px;
+  }
+  .section-eyebrow::before { content: ''; width: 24px; height: 1px; background: var(--accent2); }
+  .section-title { font-family: var(--head); font-size: clamp(22px, 3vw, 36px); font-weight: 700; color: var(--text); line-height: 1.15; margin-bottom: 14px; letter-spacing: -0.02em; }
+  .section-title .hi { color: var(--accent2); }
+  .section-desc { font-size: 15px; color: var(--text2); line-height: 1.8; max-width: 640px; }
+
+  .step-flow { display: flex; gap: 0; margin: 32px 0; overflow-x: auto; }
+  .sf-step { display: flex; flex-direction: column; align-items: center; min-width: 90px; }
+  .sf-circle {
+    width: 44px; height: 44px; border-radius: 50%;
+    border: 1px solid var(--border2); background: var(--bg3);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; margin-bottom: 8px;
+    transition: all 0.2s;
+  }
+  .sf-step:hover .sf-circle { border-color: var(--accent2); box-shadow: 0 0 16px var(--accent-bg); }
+  .sf-label { font-size: 10px; font-weight: 500; color: var(--text3); text-align: center; max-width: 70px; line-height: 1.4; text-transform: uppercase; letter-spacing: 0.05em; }
+  .sf-arrow { font-size: 14px; color: var(--text3); margin: 0 6px; align-self: center; margin-bottom: 28px; flex-shrink: 0; }
+
+  .info-card {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); padding: 20px 24px; margin: 20px 0;
+    position: relative; overflow: hidden;
+  }
+  .info-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; }
+  .info-card.blue::before { background: linear-gradient(90deg, var(--accent), var(--accent2)); }
+  .info-card.green::before { background: linear-gradient(90deg, var(--green), #06d6a0); }
+  .info-card.amber::before { background: linear-gradient(90deg, var(--amber), #ffbe0b); }
+  .info-card.red::before { background: linear-gradient(90deg, var(--red), #ff4d6d); }
+  .ic-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .ic-icon { font-size: 18px; }
+  .ic-title { font-family: var(--head); font-size: 13px; font-weight: 700; }
+  .info-card.blue .ic-title { color: var(--accent2); }
+  .info-card.green .ic-title { color: var(--green); }
+  .info-card.amber .ic-title { color: var(--amber); }
+  .info-card.red .ic-title { color: var(--red); }
+  .ic-body { font-size: 14px; color: var(--text2); line-height: 1.75; }
+
+  .code-block {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); overflow: hidden; margin: 20px 0;
+  }
+  .cb-top {
+    background: var(--bg3); padding: 10px 16px;
+    display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+  }
+  .cb-filename { font-family: var(--mono); font-size: 12px; color: var(--text3); }
+  .cb-actions { display: flex; gap: 8px; align-items: center; }
+  .cb-lang { font-size: 10px; padding: 2px 8px; border-radius: 4px; background: var(--accent-bg); color: var(--accent2); font-weight: 500; }
+  .cb-copy-btn {
+    font-size: 11px; padding: 3px 10px; border-radius: 5px;
+    border: 1px solid var(--border2); background: transparent;
+    color: var(--text3); cursor: pointer; font-family: var(--body);
+    transition: all 0.12s;
+  }
+  .cb-copy-btn:hover { border-color: var(--accent2); color: var(--accent2); }
+  .code-body {
+    padding: 20px 22px; font-family: var(--mono);
+    font-size: 12.5px; line-height: 1.9; color: #b0b8d8;
+    white-space: pre; overflow-x: auto;
+  }
+  .kw { color: #c792ea; }
+  .fn { color: #82aaff; }
+  .str { color: #c3e88d; }
+  .cm { color: #546e7a; font-style: italic; }
+  .num { color: #f78c6c; }
+  .hl { display: block; background: rgba(41,98,255,0.08); border-left: 2px solid var(--accent); padding-left: 6px; margin-left: -6px; }
+
+  .step-list { display: flex; flex-direction: column; gap: 0; margin: 24px 0; }
+  .step-item {
+    display: flex; gap: 16px; padding: 18px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .step-item:last-child { border-bottom: none; }
+  .step-num {
+    width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0;
+    background: var(--accent-bg); border: 1px solid var(--accent-border);
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--head); font-size: 12px; font-weight: 700;
+    color: var(--accent2); margin-top: 2px;
+  }
+  .step-content {}
+  .step-title { font-family: var(--head); font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+  .step-desc { font-size: 14px; color: var(--text2); line-height: 1.75; }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 20px 0; }
+  .col-card {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 16px 18px;
+  }
+  .col-card-title { font-family: var(--head); font-size: 12px; font-weight: 700; margin-bottom: 8px; }
+  .col-card.good .col-card-title { color: var(--green); }
+  .col-card.bad  .col-card-title { color: var(--red); }
+  .col-card-body { font-family: var(--mono); font-size: 11.5px; line-height: 1.8; color: var(--text2); white-space: pre; overflow-x: auto; }
+
+  .metric-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin: 20px 0; }
+  .metric-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; }
+  .metric-val { font-family: var(--head); font-size: 24px; font-weight: 700; color: var(--accent2); line-height: 1; margin-bottom: 5px; }
+  .metric-val.green { color: var(--green); }
+  .metric-val.amber { color: var(--amber); }
+  .metric-val.red { color: var(--red); }
+  .metric-label { font-size: 10px; font-weight: 500; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; }
+
+  .checklist { display: flex; flex-direction: column; gap: 8px; margin: 20px 0; }
+  .check-row {
+    display: flex; align-items: flex-start; gap: 12px;
+    padding: 12px 16px; background: var(--bg2); border: 1px solid var(--border);
+    border-radius: var(--radius); cursor: pointer; transition: all 0.15s;
+  }
+  .check-row:hover { border-color: var(--border2); }
+  .check-row.done { border-color: var(--green-border); background: var(--green-bg); }
+  .check-box {
+    width: 18px; height: 18px; border-radius: 4px;
+    border: 1px solid var(--text3); flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; transition: all 0.15s; margin-top: 1px;
+  }
+  .check-row.done .check-box { background: var(--green); border-color: var(--green); color: #000; }
+  .check-label { font-size: 14px; color: var(--text2); line-height: 1.6; }
+  .check-row.done .check-label { color: var(--text3); text-decoration: line-through; }
+
+  .section-footer {
+    display: flex; align-items: center; margin-top: 48px;
+    padding-top: 24px; border-top: 1px solid var(--border);
+  }
+
+  @media (max-width: 768px) {
+    .sidebar { display: none; }
+    .main { margin-left: 0; }
+    .content { padding: 24px 16px 80px; }
+    .two-col { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="sidebar">
+    <div class="logo">
+      <div class="logo-title">📈 Pine Script Tutorial</div>
+      <div class="logo-sub">First Code & Backtest</div>
+    </div>
+
+    <div class="chapter-group">
+      <div class="chapter-heading">Getting Started</div>
+      <button class="chapter-item active" onclick="goTo(0,this)">① What is Pine Script?</button>
+      <button class="chapter-item" onclick="goTo(1,this)">② TradingView Setup</button>
+    </div>
+    <div class="chapter-group">
+      <div class="chapter-heading">Writing Code</div>
+      <button class="chapter-item" onclick="goTo(2,this)">③ Your First Indicator</button>
+      <button class="chapter-item" onclick="goTo(3,this)">④ Your First Strategy</button>
+      <button class="chapter-item" onclick="goTo(4,this)">⑤ Inputs & Plots</button>
+    </div>
+    <div class="chapter-group">
+      <div class="chapter-heading">Using AI</div>
+      <button class="chapter-item" onclick="goTo(5,this)">⑥ Prompting Claude</button>
+      <button class="chapter-item" onclick="goTo(6,this)">⑦ Fixing Errors</button>
+    </div>
+    <div class="chapter-group">
+      <div class="chapter-heading">Backtesting</div>
+      <button class="chapter-item" onclick="goTo(7,this)">⑧ Strategy Tester</button>
+      <button class="chapter-item" onclick="goTo(8,this)">⑨ Reading Results</button>
+      <button class="chapter-item" onclick="goTo(9,this)">⑩ Completion Checklist</button>
+    </div>
+
+    <div class="progress-section">
+      <div class="progress-label"><span>Progress</span><span id="progPct">10%</span></div>
+      <div class="progress-bar-wrap"><div class="progress-fill" id="progBar" style="width:10%"></div></div>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="topbar">
+      <div class="topbar-left">
+        <div class="topbar-title" id="topTitle">What is Pine Script?</div>
+        <span class="badge badge-tutorial">Tutorial</span>
+        <span class="badge badge-step" id="stepBadge">Step 1 of 10</span>
+      </div>
+      <div class="topbar-right">
+        <button class="nav-btn" id="prevBtn" onclick="prevStep()" style="display:none">← Back</button>
+        <button class="nav-btn primary" id="nextBtn" onclick="nextStep()">Next →</button>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <!-- SECTION 0: What is Pine Script -->
+      <div id="s0" class="section active">
+        <div class="section-hero">
+          <div class="section-eyebrow">Chapter 1 — The Basics</div>
+          <div class="section-title">What is <span class="hi">Pine Script</span>?</div>
+          <div class="section-desc">Pine Script is TradingView's purpose-built scripting language for creating custom indicators, strategies, and libraries directly in the browser. No installation. No compiler. You write code → click "Add to chart" → see results instantly.</div>
+        </div>
+
+        <div class="step-flow">
+          <div class="sf-step"><div class="sf-circle">💡</div><div class="sf-label">Idea / Logic</div></div>
+          <div class="sf-arrow">→</div>
+          <div class="sf-step"><div class="sf-circle">🤖</div><div class="sf-label">Claude writes code</div></div>
+          <div class="sf-arrow">→</div>
+          <div class="sf-step"><div class="sf-circle">📋</div><div class="sf-label">Paste in Pine Editor</div></div>
+          <div class="sf-arrow">→</div>
+          <div class="sf-step"><div class="sf-circle">📊</div><div class="sf-label">See on chart</div></div>
+          <div class="sf-arrow">→</div>
+          <div class="sf-step"><div class="sf-circle">🔁</div><div class="sf-label">Refine with AI</div></div>
+        </div>
+
+        <div class="two-col">
+          <div class="col-card good">
+            <div class="col-card-title">✅ Pine Script is great for</div>
+            <div class="col-card-body" style="font-family:var(--body);white-space:normal;font-size:13px;line-height:1.8;">Custom indicators on TradingView charts
+Strategy backtesting with built-in tester
+Alert creation (webhooks, phone, email)
+Multi-timeframe analysis
+Publishing to TradingView community</div>
+          </div>
+          <div class="col-card bad">
+            <div class="col-card-title">❌ Pine Script cannot</div>
+            <div class="col-card-body" style="font-family:var(--body);white-space:normal;font-size:13px;line-height:1.8;">Execute live orders automatically (needs bot)
+Connect directly to a broker API
+Run outside of TradingView
+Access live order book or trade history
+Replace MQL5/Python for full automation</div>
+          </div>
+        </div>
+
+        <div class="info-card blue">
+          <div class="ic-header"><div class="ic-icon">📌</div><div class="ic-title">Pine Script vs MQL5 — Quick Summary</div></div>
+          <div class="ic-body">Use <strong>Pine Script</strong> if you trade on TradingView and want fast signal development with alerts. Use <strong>MQL5</strong> if you need live automated order execution through MetaTrader with a real broker connection. Many traders use both: Pine Script for signal logic, MQL5 or Python for execution. This tutorial focuses exclusively on Pine Script v5.</div>
+        </div>
+      </div>
+
+      <!-- SECTION 1: TradingView Setup -->
+      <div id="s1" class="section">
+        <div class="section-hero">
+          <div class="section-eyebrow">Chapter 2 — Setup</div>
+          <div class="section-title"><span class="hi">TradingView</span> Pine Editor Setup</div>
+          <div class="section-desc">You only need a free TradingView account to follow this tutorial. The Pine Editor is built into every chart. Here's exactly where to find everything.</div>
+        </div>
+
+        <div class="step-list">
+          <div class="step-item">
+            <div class="step-num">1</div>
+            <div class="step-content">
+              <div class="step-title">Open any chart on TradingView</div>
+              <div class="step-desc">Go to tradingview.com → Charts. Open any symbol (BTCUSDT, AAPL, EURUSD — doesn't matter). The chart is your development environment. Free accounts work fine for this tutorial.</div>
+            </div>
+          </div>
+          <div class="step-item">
+            <div class="step-num">2</div>
+            <div class="step-content">
+              <div class="step-title">Find the Pine Editor tab</div>
+              <div class="step-desc">Look at the bottom of the chart. You'll see tabs: "Pine Editor", "Strategy Tester", and others. Click "Pine Editor". A code panel opens at the bottom of the screen.</div>
+            </div>
+          </div>
+          <div class="step-item">
+            <div class="step-num">3</div>
+            <div class="step-content">
+              <div class="step-title">Clear the default template</div>
+              <div class="step-desc">TradingView pre-fills a simple indicator template. Select all (Ctrl+A / Cmd+A) and delete it. You'll paste your own code here.</div>
+            </div>
+          </div>
+          <div class="step-item">
+            <div class="step-num">4</div>
+            <div class="step-content">
+              <div class="step-title">Click "Add to chart" to compile</div>
+              <div class="step-desc">After pasting code, click the blue "Add to chart" button (top right of Pine Editor). This compiles the script and applies it to your chart. Errors appear in a red bar at the bottom.</div>
+            </div>
+          </div>
+          <div class="step-item">
+            <div class="step-num">5</div>
+            <div class="step-content">
+              <div class="step-title">Find Strategy Tester for backtesting</div>
+              <div class="step-desc">When you add a strategy() script (vs indicator()), the "Strategy Tester" tab activates automatically. Click it to see trade history, equity curve, and performance metrics.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="info-card amber">
+          <div class="ic-header"><div class="ic-icon">⚠️</div><div class="ic-title">Free vs Pro Account Differences</div></div>
+          <div class="ic-body">Free accounts: 3 indicators per chart, limited historical data, no bar replay. <strong>Pro ($14.95/mo)</strong>: more indicators, more history, intraday data. <strong>Pro+ ($29.95/mo)</strong>: adds the Strategy Optimizer for automated parameter testing. For this tutorial, free is fine. For serious backtesting, Pro+ is worth it for the Optimizer alone.</div>
+        </div>
+      </div>
+
+      <!-- SECTION 2: First Indicator -->
+      <div id="s2" class="section">
+        <div class="section-hero">
+          <div class="section-eyebrow">Chapter 3 — First Code</div>
+          <div class="section-title">Your First <span class="hi">Indicator</span></div>
+          <div class="section-desc">Before strategies, let's understand the basic Pine Script structure by building a simple EMA indicator. This is the "hello world" of Pine Script — get it working in 60 seconds.</div>
+        </div>
+
+        <div class="code-block">
+          <div class="cb-top">
+            <span class="cb-filename">my_first_indicator.pine</span>
+            <div class="cb-actions">
+              <span class="cb-lang">Pine Script v5</span>
+              <button class="cb-copy-btn" onclick="copyCode(this,'code-ind')">Copy</button>
+            </div>
+          </div>
+          <div class="code-body" id="code-ind"><span class="cm">//@version=5</span>
+<span class="hl"><span class="fn">indicator</span>(<span class="str">"My First EMA"</span>, overlay=<span class="kw">true</span>)</span>
+
+<span class="cm">// Input: let users adjust the EMA period</span>
+emaLength = <span class="fn">input.int</span>(<span class="num">20</span>, <span class="str">"EMA Length"</span>, minval=<span class="num">1</span>)
+
+<span class="cm">// Calculate the EMA</span>
+myEMA = <span class="fn">ta.ema</span>(close, emaLength)
+
+<span class="cm">// Draw it on the chart</span>
+<span class="fn">plot</span>(myEMA, <span class="str">"EMA"</span>, color=color.blue, linewidth=<span class="num">2</span>)</div>
+        </div>
+
+        <div class="step-list">
+          <div class="step-item">
+            <div class="step-num">1</div>
+            <div class="step-content">
+              <div class="step-title"><code style="font-family:var(--mono);color:var(--accent2)">//@version=5</code> — Always first</div>
+              <div class="step-desc">Every Pine Script file MUST start with this line. It tells TradingView which version of Pine Script to use. Omitting it causes TradingView to guess, which can lead to unexpected behaviour. Never skip it.</div>
+            </div>
+          </div>
+          <div class="step-item">
+            <div class="step-num">2</div>
+            <div class="step-content">
+              <div class="step-title"><code style="font-family:var(--mono);color:var(--accent2)">indicator()</code> vs <code style="font-family:var(--mono);color:var(--accent2)">strategy()</code></div>
+              <div class="step-desc"><strong>indicator()</strong> creates a visual overlay or sub-chart — it plots things but doesn't place trades. <strong>strategy()</strong> adds buy/sell logic and activates the Strategy Tester. You cannot mix both in one script. Start with indicator() to learn, switch to strategy() when you want to backtest trades.</div>
+            </div>
+          </div>
+          <div class="step-item">
+            <div class="step-num">3</div>
+            <div class="step-content">
+              <div class="step-title"><code style="font-family:var(--mono);color:var(--accent2)">overlay=true</code> — Which pane?</div>
+              <div class="step-desc">overlay=true draws on the main price chart (for things like EMAs and Bollinger Bands). overlay=false draws in a separate pane below the chart (for RSI, MACD, volume). Getting this wrong makes your chart look terrible — EMA in a sub-pane, RSI on price candles.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="info-card green">
+          <div class="ic-header"><div class="ic-icon">✅</div><div class="ic-title">Try It Now</div></div>
+          <div class="ic-body">Copy the code above → open TradingView → clear the Pine Editor → paste → click "Add to chart". You should see a blue EMA line on your chart. Click the gear icon on the indicator to change the length. That's Pine Script working.</div>
+        </div>
+      </div>
+
+      <!-- SECTION 3: First Strategy -->
+      <div id="s3" class="section">
+        <div class="section-hero">
+          <div class="section-eyebrow">Chapter 4 — Strategy</div>
+          <div class="section-title">Your First <span class="hi">Strategy</span></div>
+          <div class="section-desc">Now we switch from indicator() to strategy() — this enables the Strategy Tester and lets you see actual trade results. Here's the minimal working strategy: EMA crossover with ATR stops.</div>
+        </div>
+
+        <div class="code-block">
+          <div class="cb-top">
+            <span class="cb-filename">my_first_strategy.pine</span>
+            <div class="cb-actions">
+              <span class="cb-lang">Pine Script v5</span>
+              <button class="cb-copy-btn" onclick="copyCode(this,'code-strat')">Copy</button>
+            </div>
+          </div>
+          <div class="code-body" id="code-strat"><span class="cm">//@version=5</span>
+<span class="hl"><span class="fn">strategy</span>(<span class="str">"My First Strategy"</span>, overlay=<span class="kw">true</span>,
+         default_qty_type = strategy.percent_of_equity,
+         default_qty_value = <span class="num">2</span>,
+         commission_type = strategy.commission.percent,
+         commission_value = <span class="num">0.05</span>)</span>
+
+<span class="cm">// Inputs</span>
+fastLen = <span class="fn">input.int</span>(<span class="num">9</span>,  <span class="str">"Fast EMA"</span>)
+slowLen = <span class="fn">input.int</span>(<span class="num">21</span>, <span class="str">"Slow EMA"</span>)
+
+<span class="cm">// Indicators</span>
+fastEMA = <span class="fn">ta.ema</span>(close, fastLen)
+slowEMA = <span class="fn">ta.ema</span>(close, slowLen)
+
+<span class="cm">// Signals</span>
+<span class="hl">longEntry  = <span class="fn">ta.crossover</span>(fastEMA, slowEMA)</span>
+<span class="hl">shortEntry = <span class="fn">ta.crossunder</span>(fastEMA, slowEMA)</span>
+
+<span class="cm">// Orders</span>
+<span class="kw">if</span> longEntry
+    strategy.<span class="fn">entry</span>(<span class="str">"Long"</span>, strategy.long)
+
+<span class="kw">if</span> shortEntry
+    strategy.<span class="fn">entry</span>(<span class="str">"Short"</span>, strategy.short)
+
+<span class="cm">// Plots</span>
+<span class="fn">plot</span>(fastEMA, <span class="str">"Fast EMA"</span>, color=color.blue,   linewidth=<span class="num">2</span>)
+<span class="fn">plot</span>(slowEMA, <span class="str">"Slow EMA"</span>, color=color.orange, linewidth=<span class="num">2</span>)</div>
+        </div>
+
+        <div class="info-card blue">
+          <div class="ic-header"><div class="ic-icon">💡</div><div class="ic-title">The Key Difference: strategy.entry() vs strategy.order()</div></div>
+          <div class="ic-body"><strong>strategy.entry()</strong> — Smart. If you're already in a long and call entry("Long", strategy.long) again, it does nothing. Prevents duplicate entries automatically. Use this 95% of the time.<br><br><strong>strategy.order()</strong> — Dumb. Fires unconditionally regardless of position. Use only when you specifically need to add to a position.</div>
+        </div>
+
+        <div class="info-card amber">
+          <div class="ic-header"><div class="ic-icon">⚠️</div><div class="ic-title">Always Set Commission</div></div>
+          <div class="ic-body">Without the commission parameters, the backtest assumes zero trading costs — which is impossible in real life. Set <code style="font-family:var(--mono)">commission_value=0.05</code> for a typical spot exchange (0.05% per trade). For futures, use 0.01–0.04%. A zero-commission backtest will always look better than live results.</div>
+        </div>
+      </div>
+
+      <!-- SECTION 4: Inputs and Plots -->
+      <div id="s4" class="section">
+        <div class="section-hero">
+          <div class="section-eyebrow">Chapter 5 — Customization</div>
+          <div class="section-title">Inputs &amp; <span class="hi">Plots</span></div>
+          <div class="section-desc">Inputs make your script adjustable without editing code. Plots visualize data on the chart. Together they make your strategy user-friendly and debuggable.</div>
+        </div>
+
+        <div class="code-block">
+          <div class="cb-top">
+            <span class="cb-filename">inputs_and_plots.pine</span>
+            <div class="cb-actions"><span class="cb-lang">Pine Script v5</span><button class="cb-copy-btn" onclick="copyCode(this,'code-inp')">Copy</button></div>
+          </div>
+          <div class="code-body" id="code-inp"><span class="cm">// ── Input Types ───────────────────────────────────────</span>
+intParam   = <span class="fn">input.int</span>(<span class="num">14</span>,   <span class="str">"Integer Input"</span>,  minval=<span class="num">1</span>, maxval=<span class="num">500</span>)
+floatParam = <span class="fn">input.float</span>(<span class="num">1.5</span>, <span class="str">"Float Input"</span>,    step=<span class="num">0.1</span>)
+boolParam  = <span class="fn">input.bool</span>(<span class="kw">true</span>, <span class="str">"Enable Feature"</span>)
+srcParam   = <span class="fn">input.source</span>(close, <span class="str">"Price Source"</span>)   <span class="cm">// open/high/low/close/hl2/hlc3</span>
+tfParam    = <span class="fn">input.timeframe</span>(<span class="str">"240"</span>, <span class="str">"Higher Timeframe"</span>)
+colorParam = <span class="fn">input.color</span>(color.blue, <span class="str">"Line Color"</span>)
+
+<span class="cm">// ── Plot Types ────────────────────────────────────────</span>
+<span class="cm">// Line on main chart</span>
+<span class="fn">plot</span>(myValue, <span class="str">"My Line"</span>, color=color.blue, linewidth=<span class="num">2</span>)
+
+<span class="cm">// Horizontal line (hline works outside conditions)</span>
+<span class="fn">hline</span>(<span class="num">70</span>, <span class="str">"Overbought"</span>, color=color.red, linestyle=hline.style_dashed)
+
+<span class="cm">// Signal arrows on chart</span>
+<span class="fn">plotshape</span>(longSignal, style=shape.triangleup,
+           location=location.belowbar, color=color.green,
+           title=<span class="str">"Long Signal"</span>, size=size.small)
+
+<span class="cm">// Background shading</span>
+<span class="fn">bgcolor</span>(condition ? color.<span class="fn">new</span>(color.green, <span class="num">90</span>) : na)
+
+<span class="cm">// Candle coloring</span>
+<span class="fn">barcolor</span>(close > open ? color.green : color.red)</div>
+        </div>
+
+        <div class="info-card green">
+          <div class="ic-header"><div class="ic-icon">🎨</div><div class="ic-title">Transparency with color.new()</div></div>
+          <div class="ic-body"><code style="font-family:var(--mono)">color.new(color.green, 0)</code> = fully opaque green. <code style="font-family:var(--mono)">color.new(color.green, 90)</code> = 90% transparent (barely visible). The second argument is transparency 0–100. For background colors, 85–95 works well — visible but not overwhelming. For lines, use 0–20.</div>
+        </div>
+      </div>
+
+      <!-- SECTION 5: Prompting Claude -->
+      <div id="s5" class="section">
+        <div class="section-hero">
+          <div class="section-eyebrow">Chapter 6 — AI Workflow</div>
+          <div class="section-title">Prompting <span class="hi">Claude</span> for Pine Script</div>
+          <div class="section-desc">The quality of your Pine Script code depends almost entirely on how you describe what you want. Here's the formula that works every time — and the mistakes that waste your time.</div>
+        </div>
+
+        <div class="code-block">
+          <div class="cb-top">
+            <span class="cb-filename">Perfect Prompt Template</span>
+            <div class="cb-actions"><button class="cb-copy-btn" onclick="copyCode(this,'prompt-template')">Copy</button></div>
+          </div>
+          <div class="code-body" id="prompt-template" style="color:var(--text2)">Write a Pine Script v5 [indicator/strategy] called "[NAME]".
+
+LOGIC:
+- [Entry condition 1]
+- [Entry condition 2]  
+- [Exit condition]
+
+SETTINGS:
+- Use strategy.percent_of_equity = [X]% per trade
+- Add stop loss: [SL logic]
+- Add take profit: [TP logic]
+- Commission: 0.05%
+
+INPUTS (make these configurable):
+- [Parameter 1] — default [value]
+- [Parameter 2] — default [value]
+
+PLOTS:
+- [What to draw on chart]
+- Background color: [condition]
+
+ALERTS:
+- alertcondition() for long entry, short entry
+
+IMPORTANT: overlay=[true/false], Pine Script v5 only,
+no lookahead bias if using request.security()</div>
+        </div>
+
+        <div class="two-col">
+          <div class="col-card bad">
+            <div class="col-card-title">❌ Weak Prompt</div>
+            <div class="col-card-body" style="font-family:var(--body);white-space:normal;font-size:13px;line-height:1.7;">"make me a pine script rsi strategy with alerts"</div>
+          </div>
+          <div class="col-card good">
+            <div class="col-card-title">✅ Strong Prompt</div>
+            <div class="col-card-body" style="font-family:var(--body);white-space:normal;font-size:13px;line-height:1.7;">"Write a Pine Script v5 strategy() called 'RSI Reversal'. Long when RSI(14) crosses above 30. Short when RSI crosses below 70. Stop loss 2% from entry. Take profit 4%. Position size 2% of equity. Commission 0.05%. overlay=false. Add alertcondition() for each entry."</div>
+          </div>
+        </div>
+
+        <div class="info-card blue">
+          <div class="ic-header"><div class="ic-icon">🔑</div><div class="ic-title">3 Things Claude Needs for Pine Script</div></div>
+          <div class="ic-body">
+            <strong>1. Version:</strong> Always say "Pine Script v5" — otherwise you might get deprecated v4 syntax.<br><br>
+            <strong>2. indicator() or strategy():</strong> Be explicit. Indicator = plots only. Strategy = trades + backtest. They can't be mixed.<br><br>
+            <strong>3. overlay=true or false:</strong> Claude needs to know where to draw output. Price-level indicators (EMA, BB) → true. Oscillators (RSI, MACD) → false.
+          </div>
+        </div>
+      </div>
+
+      <!-- SECTION 6: Fixing Errors -->
+      <div id="s6" class="section">
+        <div class="section-hero">
+          <div class="section-eyebrow">Chapter 7 — Debugging</div>
+          <div class="section-title">Fixing <span class="hi">Errors</span> with AI</div>
+          <div class="section-desc">TradingView shows errors at the bottom of the Pine Editor when your script has a problem. Most beginners hit the same 5 errors. Here's how to diagnose and fix them instantly using Claude.</div>
+        </div>
+
+        <div class="step-list">
+          <div class="step-item">
+            <div class="step-num">!</div>
+            <div class="step-content">
+              <div class="step-title" style="color:var(--red)">"Cannot call 'plot' with argument 'series bool'"</div>
+              <div class="step-desc">You passed a boolean (true/false) where plot() expects a number. Fix: convert it — <code style="font-family:var(--mono);color:var(--accent2)">plot(myBool ? 1 : 0)</code> or use plotshape() for signal markers instead.</div>
+            </div>
+          </div>
+          <div class="step-item">
+            <div class="step-num">!</div>
+            <div class="step-content">
+              <div class="step-title" style="color:var(--red)">"Add to chart is not supported for this script type"</div>
+              <div class="step-desc">You're trying to use indicator() as a strategy or vice versa. Check line 2 — it should say either indicator() or strategy(), not both. Delete and repaste from scratch.</div>
+            </div>
+          </div>
+          <div class="step-item">
+            <div class="step-num">!</div>
+            <div class="step-content">
+              <div class="step-title" style="color:var(--red)">"Undeclared identifier"</div>
+              <div class="step-desc">You used a variable that was never declared. Either you typo'd the name, or it was declared inside an if-block but used outside it. Pine Script has strict scope rules — variables declared inside blocks are local to that block.</div>
+            </div>
+          </div>
+          <div class="step-item">
+            <div class="step-num">!</div>
+            <div class="step-content">
+              <div class="step-title" style="color:var(--red)">"Expression is evaluated incorrectly" (security error)</div>
+              <div class="step-desc">Lookahead bias in request.security(). Always add <code style="font-family:var(--mono);color:var(--accent2)">barmerge.lookahead_off</code> as the last argument. This is the #1 cause of backtests that look amazing but fail live.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="code-block">
+          <div class="cb-top">
+            <span class="cb-filename">Error Fix Prompt Template</span>
+            <div class="cb-actions"><button class="cb-copy-btn" onclick="copyCode(this,'err-prompt')">Copy</button></div>
+          </div>
+          <div class="code-body" id="err-prompt" style="color:var(--text2)">I have a Pine Script v5 error.
+
+Error message: "[PASTE EXACT ERROR TEXT HERE]"
+Error is on or near line: [LINE NUMBER]
+
+Full script:
+[PASTE YOUR ENTIRE CODE HERE]
+
+Please:
+1. Fix the error
+2. Explain what caused it in plain English
+3. Show me how to avoid this type of error in future</div>
+        </div>
+      </div>
+
+      <!-- SECTION 7: Strategy Tester -->
+      <div id="s7" class="section">
+        <div class="section-hero">
+          <div class="section-eyebrow">Chapter 8 — Backtesting</div>
+          <div class="section-title">Using the <span class="hi">Strategy Tester</span></div>
+          <div class="section-desc">Once your strategy() script is on the chart, the Strategy Tester tab activates. This is TradingView's built-in backtesting engine — it shows every historical trade and calculates performance metrics automatically.</div>
+        </div>
+
+        <div class="step-list">
+          <div class="step-item">
+            <div class="step-num">1</div>
+            <div class="step-content">
+              <div class="step-title">Click the "Strategy Tester" tab</div>
+              <div class="step-desc">It appears next to the Pine Editor tab at the bottom of the screen — but only when your script uses strategy(), not indicator(). Click it to open the backtest panel.</div>
+            </div>
+          </div>
+          <div class="step-item">
+            <div class="step-num">2</div>
+            <div class="step-content">
+              <div class="step-title">Use "Performance Summary" for key metrics</div>
+              <div class="step-desc">The three tabs: Overview (quick summary), Performance Summary (all metrics in detail), and List of Trades (every trade in sequence). Start with Performance Summary.</div>
+            </div>
+          </div>
+          <div class="step-item">
+            <div class="step-num">3</div>
+            <div class="step-content">
+              <div class="step-title">Set the date range for your test period</div>
+              <div class="step-desc">Click the calendar icon in Strategy Tester to set a specific date range. Always test on at least 3 years of data. Use "Properties" to set initial capital and commission if you didn't hardcode them.</div>
+            </div>
+          </div>
+          <div class="step-item">
+            <div class="step-num">4</div>
+            <div class="step-content">
+              <div class="step-title">Check the Equity Curve</div>
+              <div class="step-desc">The equity curve plots your account value over time. A healthy curve trends upward with manageable dips. A curve that crashes 50% and then recovers — that's a strategy you can't emotionally trade live, regardless of the final number.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="info-card red">
+          <div class="ic-header"><div class="ic-icon">🚨</div><div class="ic-title">The Lookahead Bias Warning</div></div>
+          <div class="ic-body">If your strategy uses request.security() and you didn't set barmerge.lookahead_off, the backtest may look incredible because it's seeing the future. This is the single most common reason a Pine Script backtest fails to replicate in live trading. Always explicitly pass barmerge.lookahead_off — never rely on the default.</div>
+        </div>
+      </div>
+
+      <!-- SECTION 8: Reading Results -->
+      <div id="s8" class="section">
+        <div class="section-hero">
+          <div class="section-eyebrow">Chapter 9 — Metrics</div>
+          <div class="section-title">Reading <span class="hi">Backtest Results</span></div>
+          <div class="section-desc">The Strategy Tester shows dozens of numbers. Most are noise. Here are the 6 that actually matter — and what to look for in each.</div>
+        </div>
+
+        <div class="metric-grid">
+          <div class="metric-card"><div class="metric-val green">&gt;1.5</div><div class="metric-label">Profit Factor target</div></div>
+          <div class="metric-card"><div class="metric-val green">&gt;150</div><div class="metric-label">Min total trades</div></div>
+          <div class="metric-card"><div class="metric-val amber">&lt;25%</div><div class="metric-label">Max drawdown</div></div>
+          <div class="metric-card"><div class="metric-val green">+ve</div><div class="metric-label">Average trade P&amp;L</div></div>
+        </div>
+
+        <div class="step-list">
+          <div class="step-item">
+            <div class="step-num">📊</div>
+            <div class="step-content">
+              <div class="step-title">Profit Factor — the most important number</div>
+              <div class="step-desc">Gross profit ÷ gross loss. Above 1.0 = profitable. Above 1.5 = solid. Above 2.0 = very good (but check for overfitting). Under 1.2 = too marginal for live trading after slippage. <strong>Optimize for this metric, not net profit.</strong></div>
+            </div>
+          </div>
+          <div class="step-item">
+            <div class="step-num">📊</div>
+            <div class="step-content">
+              <div class="step-title">Max Drawdown — the emotional gut-check</div>
+              <div class="step-desc">The biggest peak-to-trough drop in equity during the test. Live trading always has higher drawdown than backtests. If the backtest shows 20% drawdown, expect 25–30% live. If you can't emotionally handle that drawdown, this strategy isn't for you regardless of total return.</div>
+            </div>
+          </div>
+          <div class="step-item">
+            <div class="step-num">📊</div>
+            <div class="step-content">
+              <div class="step-title">Win Rate — context matters</div>
+              <div class="step-desc">Win rate alone is meaningless. A 30% win rate strategy with 10:1 risk-reward beats a 70% win rate strategy with 1:2 risk-reward. Always look at win rate AND average win/loss size together. A small average win with a large average loss = eventual blowup even with high win rate.</div>
+            </div>
+          </div>
+          <div class="step-item">
+            <div class="step-num">📊</div>
+            <div class="step-content">
+              <div class="step-title">Total Trades — statistical significance</div>
+              <div class="step-desc">Under 50 trades = results are mostly luck. You need at least 150–200 trades for a backtest to have statistical meaning. If your strategy only generated 30 trades over 3 years, either test on a shorter timeframe or accept the results are unreliable.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="info-card amber">
+          <div class="ic-header"><div class="ic-icon">⚠️</div><div class="ic-title">Backtest ≠ Live Performance</div></div>
+          <div class="ic-body">Backtests always look better than live because: (1) you're using perfect historical data with no slippage beyond what you set, (2) you know the strategy survived — survivorship bias, (3) bars close at the exact price you need. In live trading, spreads, requotes, and data gaps eat into results. A backtest Profit Factor of 1.8 might become 1.3–1.5 live. Plan for degradation.</div>
+        </div>
+      </div>
+
+      <!-- SECTION 9: Completion Checklist -->
+      <div id="s9" class="section">
+        <div class="section-hero">
+          <div class="section-eyebrow">Chapter 10 — Ship It</div>
+          <div class="section-title">First Strategy <span class="hi">Checklist</span></div>
+          <div class="section-desc">Before you enable real-money alerts from your Pine Script strategy, tick every item below. Click each one as you complete it.</div>
+        </div>
+
+        <div style="font-size:11px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:12px;">Code Quality</div>
+        <div class="checklist">
+          <div class="check-row" onclick="tick(this)"><div class="check-box"></div><div class="check-label"><strong>Script loads with zero errors</strong> in Pine Editor. No red messages in the status bar at all.</div></div>
+          <div class="check-row" onclick="tick(this)"><div class="check-box"></div><div class="check-label"><strong>First line is //@version=5</strong>. Not v4, not missing, exactly this.</div></div>
+          <div class="check-row" onclick="tick(this)"><div class="check-box"></div><div class="check-label"><strong>All key values are input() parameters</strong>, not hardcoded. EMA lengths, stop loss %, take profit %, etc.</div></div>
+          <div class="check-row" onclick="tick(this)"><div class="check-box"></div><div class="check-label"><strong>Commission is set in strategy()</strong> — commission_type and commission_value are not left at zero.</div></div>
+        </div>
+
+        <div style="font-size:11px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:0.1em;margin:20px 0 12px;">Backtest Quality</div>
+        <div class="checklist">
+          <div class="check-row" onclick="tick(this)"><div class="check-box"></div><div class="check-label"><strong>Tested on at least 2–3 years of data</strong> across different market conditions (trending and ranging periods).</div></div>
+          <div class="check-row" onclick="tick(this)"><div class="check-box"></div><div class="check-label"><strong>Profit Factor above 1.4</strong> consistently, not just in the best date range.</div></div>
+          <div class="check-row" onclick="tick(this)"><div class="check-box"></div><div class="check-label"><strong>More than 150 total trades</strong> in the backtest — otherwise results aren't statistically meaningful.</div></div>
+          <div class="check-row" onclick="tick(this)"><div class="check-box"></div><div class="check-label"><strong>Max drawdown under 25%</strong>. If higher, reduce position size or tighten stop losses.</div></div>
+          <div class="check-row" onclick="tick(this)"><div class="check-box"></div><div class="check-label"><strong>Tested on out-of-sample data</strong> — optimized on one date range, validated on a different one.</div></div>
+        </div>
+
+        <div style="font-size:11px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:0.1em;margin:20px 0 12px;">Alerts & Risk</div>
+        <div class="checklist">
+          <div class="check-row" onclick="tick(this)"><div class="check-box"></div><div class="check-label"><strong>alertcondition() calls added</strong> for all entry signals. Tested by watching the chart live.</div></div>
+          <div class="check-row" onclick="tick(this)"><div class="check-box"></div><div class="check-label"><strong>Stop loss defined for every trade</strong> via strategy.exit(). Never running naked positions.</div></div>
+          <div class="check-row" onclick="tick(this)"><div class="check-box"></div><div class="check-label"><strong>Paper traded for at least 2 weeks</strong> with live alerts but no real money. Signals match expectations.</div></div>
+        </div>
+
+        <div class="info-card green" style="margin-top:32px">
+          <div class="ic-header"><div class="ic-icon">🎉</div><div class="ic-title">You're Ready to Trade</div></div>
+          <div class="ic-body">All checked? You've done more preparation than 90% of retail traders who deploy Pine Script strategies live. The combination of AI-assisted development + thorough backtesting + proper risk management puts you in a genuinely different category. Start small, monitor alerts carefully, and keep iterating with Claude. The best strategies get continuously improved — never finished.</div>
+        </div>
+
+        <div class="section-footer">
+          <button class="nav-btn" onclick="goTo(0, document.querySelector('.chapter-item'))">↩ Start Over</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+const titles = [
+  'What is Pine Script?', 'TradingView Setup', 'Your First Indicator',
+  'Your First Strategy', 'Inputs & Plots', 'Prompting Claude',
+  'Fixing Errors with AI', 'Strategy Tester', 'Reading Results',
+  'Completion Checklist'
+];
+const total = 10;
+let current = 0;
+let visited = new Set([0]);
+
+function goTo(n, btn) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.chapter-item').forEach(b => b.classList.remove('active'));
+  document.getElementById('s' + n).classList.add('active');
+  if (btn) btn.classList.add('active');
+  current = n;
+  visited.add(n);
+  document.getElementById('topTitle').textContent = titles[n];
+  document.getElementById('stepBadge').textContent = 'Step ' + (n + 1) + ' of ' + total;
+  document.getElementById('prevBtn').style.display = n === 0 ? 'none' : '';
+  document.getElementById('nextBtn').textContent = n === total - 1 ? '↩ Restart' : 'Next →';
+  const pct = Math.round(visited.size / total * 100);
+  document.getElementById('progPct').textContent = pct + '%';
+  document.getElementById('progBar').style.width = pct + '%';
+  window.scrollTo(0, 0);
+}
+
+function nextStep() {
+  if (current < total - 1) {
+    const items = document.querySelectorAll('.chapter-item');
+    goTo(current + 1, items[current + 1]);
+  } else {
+    const items = document.querySelectorAll('.chapter-item');
+    goTo(0, items[0]);
+  }
+}
+
+function prevStep() {
+  if (current > 0) {
+    const items = document.querySelectorAll('.chapter-item');
+    goTo(current - 1, items[current - 1]);
+  }
+}
+
+function tick(el) {
+  el.classList.toggle('done');
+  el.querySelector('.check-box').textContent = el.classList.contains('done') ? '✓' : '';
+}
+
+function copyCode(btn, id) {
+  const el = document.getElementById(id);
+  const text = el ? el.innerText : '';
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = 'Copied!';
+    setTimeout(() => btn.textContent = 'Copy', 1800);
+  });
+}
+
+// Init
+document.querySelector('.chapter-item').classList.add('active');
+</script>
+</body>
+</html>
