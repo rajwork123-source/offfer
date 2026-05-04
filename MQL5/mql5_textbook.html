@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MQL5 Interactive Textbook</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Syne:wght@400;500;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0d0f;
+    --bg2: #141417;
+    --bg3: #1c1c21;
+    --bg4: #24242b;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.13);
+    --text: #f0f0f4;
+    --text2: #9494a8;
+    --text3: #5a5a6e;
+    --accent: #7c6dfa;
+    --accent2: #a594fc;
+    --accent-bg: rgba(124,109,250,0.12);
+    --accent-border: rgba(124,109,250,0.3);
+    --green: #3ecf8e;
+    --green-bg: rgba(62,207,142,0.1);
+    --amber: #f5a623;
+    --amber-bg: rgba(245,166,35,0.1);
+    --red: #f56565;
+    --red-bg: rgba(245,101,101,0.1);
+    --mono: 'JetBrains Mono', monospace;
+    --head: 'Syne', sans-serif;
+    --body: 'DM Sans', sans-serif;
+    --radius: 10px;
+    --radius-lg: 16px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: var(--body);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 15px;
+    line-height: 1.6;
+  }
+
+  /* LAYOUT */
+  .app { display: flex; min-height: 100vh; }
+  .sidebar {
+    width: 260px;
+    background: var(--bg2);
+    border-right: 1px solid var(--border);
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    overflow-y: auto;
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+  }
+  .main {
+    margin-left: 260px;
+    flex: 1;
+    min-height: 100vh;
+  }
+
+  /* SIDEBAR */
+  .logo {
+    padding: 24px 20px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .logo-title {
+    font-family: var(--head);
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: -0.01em;
+  }
+  .logo-sub {
+    font-size: 11px;
+    color: var(--text3);
+    margin-top: 2px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .nav-section {
+    padding: 16px 12px 8px;
+  }
+  .nav-label {
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    padding: 0 8px;
+    margin-bottom: 6px;
+  }
+  .nav-btn {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 9px 12px;
+    border-radius: var(--radius);
+    border: none;
+    background: transparent;
+    color: var(--text2);
+    font-family: var(--body);
+    font-size: 13.5px;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.15s;
+  }
+  .nav-btn:hover { background: var(--bg3); color: var(--text); }
+  .nav-btn.active { background: var(--accent-bg); color: var(--accent2); border: 1px solid var(--accent-border); }
+  .nav-icon { font-size: 14px; width: 18px; text-align: center; }
+
+  .chapter-group { padding: 8px 12px; }
+  .chapter-heading {
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    padding: 0 8px;
+    margin-bottom: 4px;
+  }
+  .chapter-item {
+    display: block;
+    width: 100%;
+    padding: 7px 12px;
+    border-radius: 8px;
+    border: none;
+    background: transparent;
+    color: var(--text3);
+    font-family: var(--body);
+    font-size: 12.5px;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.15s;
+  }
+  .chapter-item:hover { background: var(--bg3); color: var(--text2); }
+  .chapter-item.active { color: var(--accent2); background: var(--accent-bg); }
+
+  .progress-section {
+    margin-top: auto;
+    padding: 16px;
+    border-top: 1px solid var(--border);
+  }
+  .progress-label { font-size: 11px; color: var(--text3); margin-bottom: 8px; }
+  .progress-bar-wrap { height: 4px; background: var(--bg4); border-radius: 2px; overflow: hidden; }
+  .progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--green)); border-radius: 2px; transition: width 0.4s; }
+
+  /* HEADER */
+  .topbar {
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+  }
+  .topbar-title { font-family: var(--head); font-size: 17px; font-weight: 700; color: var(--text); }
+  .topbar-badge {
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 999px;
+    background: var(--accent-bg);
+    color: var(--accent2);
+    border: 1px solid var(--accent-border);
+    font-weight: 500;
+  }
+
+  /* CONTENT */
+  .content { padding: 36px 40px 60px; max-width: 780px; }
+
+  /* SECTIONS */
+  .section { display: none; }
+  .section.active { display: block; animation: fadeIn 0.2s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* LESSON */
+  .lesson-hero {
+    margin-bottom: 28px;
+  }
+  .lesson-tag {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--accent2);
+    margin-bottom: 8px;
+    font-weight: 500;
+  }
+  .lesson-title {
+    font-family: var(--head);
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1.2;
+    margin-bottom: 12px;
+    letter-spacing: -0.02em;
+  }
+  .lesson-desc {
+    font-size: 15px;
+    color: var(--text2);
+    line-height: 1.75;
+    max-width: 640px;
+  }
+  .concept-block { margin-bottom: 24px; }
+  .concept-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    color: var(--text3);
+    margin-bottom: 10px;
+    font-weight: 500;
+  }
+  .code-block {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 20px 24px;
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.8;
+    color: #c9c9e0;
+    overflow-x: auto;
+    white-space: pre;
+  }
+  .code-block .kw { color: #a78bfa; }
+  .code-block .fn { color: var(--green); }
+  .code-block .str { color: #f9a84d; }
+  .code-block .cmt { color: var(--text3); font-style: italic; }
+  .code-block .num { color: #f56565; }
+  .text-block {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 16px 20px;
+    font-size: 14px;
+    color: var(--text2);
+    line-height: 1.8;
+    white-space: pre-line;
+  }
+  .tip-box {
+    background: var(--green-bg);
+    border-left: 3px solid var(--green);
+    border-radius: 0 var(--radius) var(--radius) 0;
+    padding: 12px 16px;
+    margin: 20px 0;
+    font-size: 13.5px;
+    color: #7edbaf;
+    line-height: 1.65;
+  }
+  .warn-box {
+    background: var(--amber-bg);
+    border-left: 3px solid var(--amber);
+    border-radius: 0 var(--radius) var(--radius) 0;
+    padding: 12px 16px;
+    margin: 20px 0;
+    font-size: 13.5px;
+    color: #f5c97c;
+    line-height: 1.65;
+  }
+  .lesson-nav {
+    display: flex;
+    gap: 10px;
+    margin-top: 32px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+  }
+  .btn {
+    padding: 9px 20px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border2);
+    background: var(--bg3);
+    color: var(--text2);
+    font-family: var(--body);
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn:hover { background: var(--bg4); color: var(--text); border-color: var(--border2); }
+  .btn-primary {
+    background: var(--accent-bg);
+    color: var(--accent2);
+    border-color: var(--accent-border);
+  }
+  .btn-primary:hover { background: rgba(124,109,250,0.2); }
+  .btn-ml { margin-left: auto; }
+
+  /* FLASHCARDS */
+  .fc-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; gap: 12px; flex-wrap: wrap; }
+  .fc-title { font-family: var(--head); font-size: 22px; font-weight: 700; }
+  .fc-controls { display: flex; gap: 8px; align-items: center; }
+  select {
+    background: var(--bg3);
+    border: 1px solid var(--border2);
+    border-radius: var(--radius);
+    color: var(--text2);
+    font-family: var(--body);
+    font-size: 13px;
+    padding: 7px 12px;
+    cursor: pointer;
+  }
+  .fc-progress { height: 3px; background: var(--bg4); border-radius: 2px; overflow: hidden; margin-bottom: 24px; }
+  .fc-prog-fill { height: 100%; background: var(--accent); border-radius: 2px; transition: width 0.3s; }
+  .flashcard {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    min-height: 240px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2.5rem 2rem;
+    cursor: pointer;
+    position: relative;
+    transition: border-color 0.2s;
+  }
+  .flashcard:hover { border-color: var(--border2); }
+  .fc-side-label {
+    position: absolute;
+    top: 14px; left: 18px;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text3);
+    font-weight: 500;
+  }
+  .fc-cat {
+    position: absolute;
+    top: 12px; right: 16px;
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 999px;
+    background: var(--accent-bg);
+    color: var(--accent2);
+    border: 1px solid var(--accent-border);
+  }
+  .fc-q-text { font-size: 17px; font-weight: 500; color: var(--text); text-align: center; line-height: 1.5; }
+  .fc-a-text {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--text2);
+    text-align: center;
+    line-height: 1.8;
+    margin-top: 1rem;
+    background: var(--bg3);
+    padding: 12px 20px;
+    border-radius: var(--radius);
+    max-width: 520px;
+  }
+  .fc-btns { display: flex; gap: 10px; margin-top: 20px; justify-content: center; }
+  .fc-counter { font-size: 13px; color: var(--text3); text-align: center; margin-top: 10px; }
+
+  /* QUIZ */
+  .quiz-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  .quiz-progress { height: 3px; background: var(--bg4); border-radius: 2px; overflow: hidden; margin-bottom: 28px; }
+  .quiz-prog-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--green)); border-radius: 2px; transition: width 0.4s; }
+  .quiz-q-text { font-family: var(--head); font-size: 18px; font-weight: 700; color: var(--text); margin-bottom: 20px; line-height: 1.4; }
+  .quiz-opts { display: flex; flex-direction: column; gap: 9px; margin-bottom: 16px; }
+  .quiz-opt {
+    padding: 13px 18px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    background: var(--bg2);
+    color: var(--text2);
+    font-family: var(--body);
+    font-size: 14px;
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .quiz-opt:hover:not(:disabled) { border-color: var(--border2); background: var(--bg3); color: var(--text); }
+  .quiz-opt.correct { background: var(--green-bg); border-color: var(--green); color: var(--green); }
+  .quiz-opt.wrong { background: var(--red-bg); border-color: var(--red); color: var(--red); }
+  .quiz-feedback {
+    padding: 12px 16px;
+    border-radius: var(--radius);
+    font-size: 13.5px;
+    line-height: 1.65;
+    margin-bottom: 16px;
+  }
+  .quiz-feedback.correct { background: var(--green-bg); color: #7edbaf; }
+  .quiz-feedback.wrong { background: var(--red-bg); color: #f99; }
+  .score-wrap { text-align: center; padding: 3rem 1rem; }
+  .score-big { font-family: var(--head); font-size: 64px; font-weight: 700; color: var(--text); line-height: 1; }
+  .score-sub { font-size: 15px; color: var(--text2); margin-top: 8px; }
+  .score-grade { font-size: 22px; margin-top: 16px; }
+  .score-btns { display: flex; gap: 10px; justify-content: center; margin-top: 28px; }
+
+  /* REFERENCE */
+  .ref-title { font-family: var(--head); font-size: 22px; font-weight: 700; margin-bottom: 20px; }
+  .ref-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
+  .ref-card { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px 18px; }
+  .ref-card-title { font-size: 11px; text-transform: uppercase; letter-spacing: 0.09em; color: var(--text3); font-weight: 500; margin-bottom: 10px; }
+  .ref-item { display: flex; flex-direction: column; gap: 1px; padding: 7px 0; border-bottom: 1px solid var(--border); }
+  .ref-item:last-child { border-bottom: none; }
+  .ref-code { font-family: var(--mono); font-size: 12.5px; color: var(--green); }
+  .ref-desc { font-size: 11px; color: var(--text3); }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--bg4); border-radius: 3px; }
+
+  @media (max-width: 768px) {
+    .sidebar { width: 100%; position: relative; height: auto; }
+    .main { margin-left: 0; }
+    .app { flex-direction: column; }
+    .content { padding: 20px 18px 40px; }
+    .topbar { padding: 14px 18px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="logo">
+      <div class="logo-title">MQL5 Textbook</div>
+      <div class="logo-sub">Interactive Learning</div>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-label">Sections</div>
+      <button class="nav-btn active" onclick="showSection('learn', this)">
+        <span class="nav-icon">📖</span> Learn
+      </button>
+      <button class="nav-btn" onclick="showSection('flashcards', this)">
+        <span class="nav-icon">🃏</span> Flashcards
+      </button>
+      <button class="nav-btn" onclick="showSection('quiz', this)">
+        <span class="nav-icon">🧠</span> Quiz
+      </button>
+      <button class="nav-btn" onclick="showSection('reference', this)">
+        <span class="nav-icon">📋</span> Reference
+      </button>
+    </div>
+
+    <div class="chapter-group" id="chapterNav"></div>
+
+    <div class="progress-section">
+      <div class="progress-label" id="progressLabel">Progress: 0%</div>
+      <div class="progress-bar-wrap">
+        <div class="progress-fill" id="sidebarProgress" style="width:0%"></div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main">
+    <div class="topbar">
+      <div class="topbar-title" id="topbarTitle">Learn MQL5</div>
+      <div class="topbar-badge" id="topbarBadge">Chapter 1</div>
+    </div>
+
+    <div class="content">
+
+      <!-- LEARN -->
+      <div id="learn" class="section active">
+        <div id="lessonContent"></div>
+      </div>
+
+      <!-- FLASHCARDS -->
+      <div id="flashcards" class="section">
+        <div class="fc-header">
+          <div class="fc-title">Flashcards</div>
+          <div class="fc-controls">
+            <select id="fcFilter" onchange="filterCards()">
+              <option value="all">All topics</option>
+              <option value="syntax">Syntax</option>
+              <option value="data types">Data types</option>
+              <option value="functions">Functions</option>
+              <option value="trading">Trading</option>
+              <option value="indicators">Indicators</option>
+            </select>
+            <button class="btn" onclick="shuffleCards()">Shuffle</button>
+          </div>
+        </div>
+        <div class="fc-progress"><div class="fc-prog-fill" id="fcProgress" style="width:0%"></div></div>
+        <div class="flashcard" id="flashcard" onclick="flipCard()">
+          <div class="fc-side-label" id="fcSideLabel">Question</div>
+          <div class="fc-cat" id="fcCat"></div>
+          <div class="fc-q-text" id="fcFront"></div>
+          <div class="fc-a-text" id="fcBack" style="display:none;"></div>
+        </div>
+        <div class="fc-btns">
+          <button class="btn" onclick="prevCard()">← Prev</button>
+          <button class="btn btn-primary" onclick="flipCard()">Flip card</button>
+          <button class="btn" onclick="nextCard()">Next →</button>
+        </div>
+        <div class="fc-counter" id="fcCounter"></div>
+      </div>
+
+      <!-- QUIZ -->
+      <div id="quiz" class="section">
+        <div id="quizContent"></div>
+      </div>
+
+      <!-- REFERENCE -->
+      <div id="reference" class="section">
+        <div class="ref-title">Quick Reference</div>
+        <div class="ref-grid" id="refGrid"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+const chapters = [
+  {
+    title: "Chapter 1: What is MQL5?",
+    short: "Intro & Setup",
+    lessons: [
+      {
+        title: "What is MQL5?",
+        tag: "Chapter 1 · Introduction",
+        desc: "MQL5 (MetaQuotes Language 5) is a programming language built specifically for the MetaTrader 5 trading platform. You use it to create automated trading programs called Expert Advisors (EAs), custom chart indicators, and utility scripts. Think of it as a special version of C++ designed purely for trading.",
+        concepts: [
+          { label: "The 3 types of MQL5 programs", type: "text", content: "Expert Advisor (EA) — A trading robot that runs automatically and can open/close trades.\nCustom Indicator — Draws lines or shapes on your chart to help analyze prices.\nScript — A one-time task that runs once and stops (like placing one order)." },
+          { label: "Your first MQL5 program", type: "code", content: `<span class="cmt">// This is a comment — MQL5 ignores it</span>\n<span class="kw">void</span> <span class="fn">OnStart</span>()\n{\n   <span class="fn">Print</span>(<span class="str">"Hello, MQL5 World!"</span>);\n}` }
+        ],
+        tip: "MetaEditor is the free IDE (code editor) that comes with MetaTrader 5. Press F5 to compile your code.",
+        warn: null
+      },
+      {
+        title: "Program Structure",
+        tag: "Chapter 1 · Event Handlers",
+        desc: "Every MQL5 program follows a predictable structure. There are special functions called 'event handlers' that MT5 calls automatically at the right moment — like OnInit() when your program starts, and OnTick() every time the price moves.",
+        concepts: [
+          { label: "Basic EA structure", type: "code", content: `<span class="kw">int</span> <span class="fn">OnInit</span>()          <span class="cmt">// Runs ONCE at startup</span>\n{\n   <span class="fn">Print</span>(<span class="str">"EA started!"</span>);\n   <span class="kw">return</span>(INIT_SUCCEEDED);\n}\n\n<span class="kw">void</span> <span class="fn">OnTick</span>()          <span class="cmt">// Runs on EVERY price tick</span>\n{\n   <span class="fn">Print</span>(<span class="str">"Price moved!"</span>);\n}\n\n<span class="kw">void</span> <span class="fn">OnDeinit</span>(<span class="kw">const int</span> reason) <span class="cmt">// Runs ONCE on shutdown</span>\n{\n   <span class="fn">Print</span>(<span class="str">"EA stopped."</span>);\n}` }
+        ],
+        tip: "OnTick() is the heart of any EA. It can run hundreds of times per second on a busy market — keep code inside it fast.",
+        warn: null
+      }
+    ]
+  },
+  {
+    title: "Chapter 2: Data Types",
+    short: "Variables & Values",
+    lessons: [
+      {
+        title: "Data Types Explained",
+        tag: "Chapter 2 · Data Types",
+        desc: "Every piece of data in MQL5 has a type. The type tells the computer how much memory to use and what kind of operations are allowed. Getting types right prevents many common bugs.",
+        concepts: [
+          { label: "Core data types", type: "code", content: `<span class="kw">int</span>      myAge   = <span class="num">25</span>;         <span class="cmt">// Whole numbers: -2M to 2M</span>\n<span class="kw">double</span>   price   = <span class="num">1.23456</span>;    <span class="cmt">// Decimal numbers (use for prices!)</span>\n<span class="kw">string</span>   symbol  = <span class="str">"EURUSD"</span>;  <span class="cmt">// Text in double quotes</span>\n<span class="kw">bool</span>     isOpen  = <span class="kw">true</span>;      <span class="cmt">// Only true or false</span>\n<span class="kw">datetime</span> now     = <span class="fn">TimeCurrent</span>(); <span class="cmt">// Date + time combined</span>` },
+          { label: "Special trading types", type: "code", content: `<span class="kw">color</span>  lineColor = clrRed;    <span class="cmt">// Chart colors</span>\n<span class="kw">long</span>   ticket    = <span class="num">12345678</span>; <span class="cmt">// Very large whole numbers</span>` }
+        ],
+        tip: "Always use double (not float) for prices in MQL5. The float type is not precise enough for trading calculations.",
+        warn: "Never store a price in an int — you'll lose the decimal part silently!"
+      },
+      {
+        title: "Variables & Constants",
+        tag: "Chapter 2 · Declaration",
+        desc: "A variable is a named storage box that holds a value. A constant is a value that never changes. Naming your variables clearly makes your code much easier to read and debug.",
+        concepts: [
+          { label: "Declaring variables", type: "code", content: `<span class="kw">double</span> stopLoss   = <span class="num">50.0</span>;   <span class="cmt">// 50 pips stop loss</span>\n<span class="kw">double</span> takeProfit  = <span class="num">100.0</span>;  <span class="cmt">// 100 pips take profit</span>\n<span class="kw">int</span>    maxTrades   = <span class="num">3</span>;      <span class="cmt">// Max open trades</span>\n\n<span class="cmt">// Constants never change after declaration:</span>\n<span class="kw">#define</span> PI    <span class="num">3.14159</span>\n<span class="kw">const int</span> MAX = <span class="num">10</span>;` }
+        ],
+        tip: "Use descriptive names: 'stopLossInPips' is better than 'sl' or 'x'. Future-you will thank you!",
+        warn: null
+      }
+    ]
+  },
+  {
+    title: "Chapter 3: Control Flow",
+    short: "If, Loops & Logic",
+    lessons: [
+      {
+        title: "If / Else Statements",
+        tag: "Chapter 3 · Conditions",
+        desc: "Control flow lets your program make decisions. The if/else statement runs different code depending on whether a condition is true or false — this is the foundation of all trading logic.",
+        concepts: [
+          { label: "If / else syntax", type: "code", content: `<span class="kw">double</span> ask = <span class="fn">SymbolInfoDouble</span>(_Symbol, SYMBOL_ASK);\n\n<span class="kw">if</span>(ask > <span class="num">1.1000</span>)\n{\n   <span class="fn">Print</span>(<span class="str">"Price above 1.1000 — consider selling"</span>);\n}\n<span class="kw">else if</span>(ask < <span class="num">1.0900</span>)\n{\n   <span class="fn">Print</span>(<span class="str">"Price below 1.0900 — consider buying"</span>);\n}\n<span class="kw">else</span>\n{\n   <span class="fn">Print</span>(<span class="str">"Price in range — wait"</span>);\n}` }
+        ],
+        tip: "In MQL5, == means 'is equal to' (comparison). A single = means 'assign a value'. Mixing them up is a very common beginner mistake!",
+        warn: "Never use = when you mean ==. if(x = 5) always passes — it assigns 5 to x instead of comparing!"
+      },
+      {
+        title: "Loops",
+        tag: "Chapter 3 · Repetition",
+        desc: "Loops let you repeat code multiple times without copying it. In MQL5, loops are extremely useful for scanning through historical price bars.",
+        concepts: [
+          { label: "For loop — fixed repetitions", type: "code", content: `<span class="cmt">// Loop through last 10 candles</span>\n<span class="kw">for</span>(<span class="kw">int</span> i = <span class="num">0</span>; i < <span class="num">10</span>; i++)\n{\n   <span class="kw">double</span> closePrice = <span class="fn">iClose</span>(_Symbol, PERIOD_H1, i);\n   <span class="fn">Print</span>(<span class="str">"Bar "</span>, i, <span class="str">": close = "</span>, closePrice);\n}` },
+          { label: "While loop — conditional", type: "code", content: `<span class="kw">int</span> count = <span class="num">0</span>;\n<span class="kw">while</span>(count < <span class="num">5</span>)\n{\n   <span class="fn">Print</span>(<span class="str">"Count: "</span>, count);\n   count++;  <span class="cmt">// count = count + 1</span>\n}` }
+        ],
+        tip: "In MQL5, bar index 0 is the current/latest bar, bar 1 is the previous one, bar 2 is two bars ago, etc.",
+        warn: null
+      }
+    ]
+  },
+  {
+    title: "Chapter 4: Functions",
+    short: "Reusable Code Blocks",
+    lessons: [
+      {
+        title: "Writing Functions",
+        tag: "Chapter 4 · Functions",
+        desc: "A function is a reusable block of code with a name. Instead of writing the same logic over and over, you write it once in a function and call it by name. MQL5 programs are built from many small functions working together.",
+        concepts: [
+          { label: "Function syntax", type: "code", content: `<span class="cmt">// Define a function that calculates lot size</span>\n<span class="kw">double</span> <span class="fn">CalculateLotSize</span>(<span class="kw">double</span> riskPercent, <span class="kw">double</span> slPips)\n{\n   <span class="kw">double</span> balance    = <span class="fn">AccountInfoDouble</span>(ACCOUNT_BALANCE);\n   <span class="kw">double</span> riskAmount = balance * riskPercent / <span class="num">100.0</span>;\n   <span class="kw">double</span> lotSize    = riskAmount / (slPips * <span class="num">10</span>);\n   <span class="kw">return</span>(lotSize);\n}\n\n<span class="cmt">// Call the function inside OnTick()</span>\n<span class="kw">void</span> <span class="fn">OnTick</span>()\n{\n   <span class="kw">double</span> lots = <span class="fn">CalculateLotSize</span>(<span class="num">1.0</span>, <span class="num">50</span>);\n   <span class="fn">Print</span>(<span class="str">"Lot size: "</span>, lots);\n}` }
+        ],
+        tip: "A function that returns nothing uses void as its return type. A function that returns a number uses int, double, etc.",
+        warn: null
+      }
+    ]
+  },
+  {
+    title: "Chapter 5: Market Data",
+    short: "Reading Prices & Bars",
+    lessons: [
+      {
+        title: "Reading Price Data",
+        tag: "Chapter 5 · Market Data",
+        desc: "To trade, your program needs to read live and historical price data. MQL5 has built-in functions and variables to access the current price, past candle data, and market information.",
+        concepts: [
+          { label: "Current price", type: "code", content: `<span class="kw">double</span> ask = <span class="fn">SymbolInfoDouble</span>(_Symbol, SYMBOL_ASK); <span class="cmt">// Buy price</span>\n<span class="kw">double</span> bid = <span class="fn">SymbolInfoDouble</span>(_Symbol, SYMBOL_BID); <span class="cmt">// Sell price</span>\n<span class="kw">double</span> spread = ask - bid;  <span class="cmt">// The broker's fee</span>` },
+          { label: "Historical candle data (OHLCV)", type: "code", content: `<span class="cmt">// Syntax: iClose(symbol, timeframe, bar_index)</span>\n<span class="kw">double</span> lastClose  = <span class="fn">iClose</span>(_Symbol,  PERIOD_H1, <span class="num">1</span>);\n<span class="kw">double</span> lastHigh   = <span class="fn">iHigh</span>(_Symbol,   PERIOD_H1, <span class="num">1</span>);\n<span class="kw">double</span> lastLow    = <span class="fn">iLow</span>(_Symbol,    PERIOD_H1, <span class="num">1</span>);\n<span class="kw">double</span> lastOpen   = <span class="fn">iOpen</span>(_Symbol,   PERIOD_H1, <span class="num">1</span>);\n<span class="kw">long</span>   lastVolume = <span class="fn">iVolume</span>(_Symbol, PERIOD_H1, <span class="num">1</span>);` }
+        ],
+        tip: "PERIOD_H1 means 1-hour candles. Other options: PERIOD_M1 (1 min), PERIOD_M15 (15 min), PERIOD_D1 (daily), PERIOD_W1 (weekly).",
+        warn: null
+      }
+    ]
+  },
+  {
+    title: "Chapter 6: Placing Trades",
+    short: "CTrade & Orders",
+    lessons: [
+      {
+        title: "Using CTrade to Place Orders",
+        tag: "Chapter 6 · Trading",
+        desc: "CTrade is a built-in class (a pre-made toolkit) that makes placing and managing trades simple. It handles all the complex order-sending logic for you.",
+        concepts: [
+          { label: "Buy and sell trades", type: "code", content: `<span class="kw">#include</span> <span class="str">&lt;Trade\\Trade.mqh&gt;</span>\nCTrade trade;  <span class="cmt">// Create a trade object</span>\n\n<span class="kw">void</span> <span class="fn">OnTick</span>()\n{\n   <span class="kw">double</span> ask = <span class="fn">SymbolInfoDouble</span>(_Symbol, SYMBOL_ASK);\n   <span class="kw">double</span> bid = <span class="fn">SymbolInfoDouble</span>(_Symbol, SYMBOL_BID);\n\n   <span class="cmt">// Buy 0.1 lots, 50-pip SL, 100-pip TP</span>\n   trade.<span class="fn">Buy</span>(<span class="num">0.1</span>, _Symbol, ask, ask - <span class="num">0.0050</span>, ask + <span class="num">0.0100</span>);\n\n   <span class="cmt">// Sell 0.1 lots</span>\n   trade.<span class="fn">Sell</span>(<span class="num">0.1</span>, _Symbol, bid, bid + <span class="num">0.0050</span>, bid - <span class="num">0.0100</span>);\n}` }
+        ],
+        tip: "Always test your EA in the Strategy Tester (backtest) before using it with real money. Use a demo account first!",
+        warn: "Real-money trading carries financial risk. Always use proper risk management — never risk more than 1-2% of your account per trade."
+      }
+    ]
+  }
+];
+
+const flashcards = [
+  { q: "What does MQL5 stand for?", a: "MetaQuotes Language 5 — the programming language for MetaTrader 5", cat: "syntax" },
+  { q: "What function runs once when an EA starts?", a: "OnInit() — initializes the EA and runs exactly one time at startup", cat: "functions" },
+  { q: "What function runs on every price tick?", a: "OnTick() — called every time the price changes (can be hundreds of times per second)", cat: "functions" },
+  { q: "What function runs when an EA stops?", a: "OnDeinit(const int reason) — used for cleanup when the EA is removed or MT5 closes", cat: "functions" },
+  { q: "What data type stores decimal numbers like prices?", a: "double — e.g.: double price = 1.23456;", cat: "data types" },
+  { q: "What data type stores whole numbers?", a: "int — e.g.: int count = 5; (range: about -2 billion to 2 billion)", cat: "data types" },
+  { q: "What data type stores text?", a: 'string — e.g.: string symbol = "EURUSD";', cat: "data types" },
+  { q: "What data type stores true/false values?", a: "bool — e.g.: bool isTrading = true;", cat: "data types" },
+  { q: "What does _Symbol mean in MQL5?", a: 'A predefined variable holding the chart\'s currency pair name, e.g. "EURUSD"', cat: "syntax" },
+  { q: "What is the difference between = and ==?", a: "= assigns a value. == compares two values. if(x == 5) checks equality; x = 5 sets x to 5.", cat: "syntax" },
+  { q: "How do you get the current Ask price?", a: "SymbolInfoDouble(_Symbol, SYMBOL_ASK) — returns the current buy/ask price", cat: "trading" },
+  { q: "How do you get the close price of the last candle?", a: "iClose(_Symbol, PERIOD_H1, 1) — the 1 means 1 bar ago; 0 = current forming bar", cat: "trading" },
+  { q: "What does bar index 0 mean in MQL5?", a: "Bar 0 is the current (still-forming) candle. Bar 1 is the previous completed candle.", cat: "trading" },
+  { q: "What class do you use to place trades easily?", a: "CTrade — include with: #include <Trade\\Trade.mqh> then: CTrade trade;", cat: "trading" },
+  { q: "How do you place a buy order with CTrade?", a: "trade.Buy(lotSize, symbol, price, stopLoss, takeProfit)", cat: "trading" },
+  { q: "What is iMA() used for?", a: "Creates a Moving Average indicator handle to read MA values on any symbol/timeframe", cat: "indicators" },
+  { q: "What is the difference between a Script and an EA?", a: "A Script runs once and stops. An EA runs continuously, reacting to market events like OnTick()", cat: "syntax" },
+  { q: "How do you write a comment in MQL5?", a: "Single line: // This is a comment\nMultiple lines: /* This spans\nmultiple lines */", cat: "syntax" },
+  { q: "What does #include do?", a: "#include adds code from another file. E.g. #include <Trade\\Trade.mqh> adds the CTrade class", cat: "syntax" },
+  { q: "What is a for loop used for?", a: "Repeating a block of code a fixed number of times. E.g.: for(int i=0; i<10; i++) runs 10 times", cat: "syntax" },
+];
+
+const quizQuestions = [
+  { q: "Which function in an EA runs every time the price changes?", opts: ["OnInit()", "OnTick()", "OnDeinit()", "OnCalculate()"], ans: 1, exp: "OnTick() is triggered on every new price tick. OnInit() runs once at startup, OnDeinit() runs once at shutdown." },
+  { q: "Which data type should you use to store a trading price like 1.23456?", opts: ["int", "string", "bool", "double"], ans: 3, exp: "double stores decimal numbers with high precision — essential for prices. int only stores whole numbers." },
+  { q: "What does the predefined variable _Symbol contain?", opts: ["The current price", "The chart's currency pair name (e.g. EURUSD)", "The account balance", "The lot size"], ans: 1, exp: "_Symbol is a built-in variable that always holds the symbol name of the chart the EA is running on." },
+  { q: "In MQL5, what does bar index 1 in iClose(_Symbol, PERIOD_H1, 1) mean?", opts: ["The current forming bar", "The bar 1 hour in the future", "The most recently completed (previous) bar", "Bar number 1 of the day"], ans: 2, exp: "Index 0 = current bar, index 1 = previous completed bar, index 2 = two bars ago, and so on." },
+  { q: "What is the correct operator to compare two values in an if statement?", opts: ["=", "==", "=>", ":="], ans: 1, exp: "== is the comparison operator. A single = is assignment. Using = inside an if() is a very common bug!" },
+  { q: "Which include file do you need to use the CTrade class?", opts: ["<Orders\\Orders.mqh>", "<Trading\\CTrade.mqh>", "<Trade\\Trade.mqh>", "<MQL5\\Trade.mqh>"], ans: 2, exp: "#include <Trade\\Trade.mqh> gives you access to the CTrade class for easy trade management." },
+  { q: "What does OnInit() return to indicate the EA started successfully?", opts: ["true", "1", "INIT_SUCCEEDED", "START_OK"], ans: 2, exp: "OnInit() should return INIT_SUCCEEDED (which equals 0) when everything is set up correctly." },
+  { q: "Which function gets the current Ask price?", opts: ["GetAskPrice()", "iAsk(_Symbol)", "SymbolInfoDouble(_Symbol, SYMBOL_ASK)", "AskPrice(_Symbol)"], ans: 2, exp: "SymbolInfoDouble() is used to get symbol price data. SYMBOL_ASK retrieves the current buy/ask price." },
+  { q: "What is the difference between a Script and an Expert Advisor?", opts: ["Scripts are faster", "Scripts run once, EAs run continuously", "EAs are free, Scripts cost money", "There is no difference"], ans: 1, exp: "A Script runs its OnStart() function once and exits. An EA keeps running, calling OnTick() on every price change." },
+  { q: "How do you write a single-line comment in MQL5?", opts: ["/* comment */", "# comment", "// comment", "<!-- comment -->"], ans: 2, exp: "// starts a single-line comment in MQL5 (same as C/C++). /* */ is used for multi-line comments." },
+];
+
+let currentChapter = 0, currentLesson = 0;
+let currentCard = 0, cardFlipped = false;
+let filteredCards = [...flashcards];
+let quizIndex = 0, quizScore = 0, quizAnswered = false;
+let lessonsCompleted = new Set();
+
+const totalLessons = chapters.reduce((a, c) => a + c.lessons.length, 0);
+
+function showSection(name, btn) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(name).classList.add('active');
+  if (btn) btn.classList.add('active');
+  const titles = { learn: 'Learn MQL5', flashcards: 'Flashcards', quiz: 'Quiz', reference: 'Reference' };
+  document.getElementById('topbarTitle').textContent = titles[name];
+  if (name === 'flashcards') { renderCard(); document.getElementById('topbarBadge').textContent = filteredCards.length + ' cards'; }
+  if (name === 'quiz') { renderQuiz(); document.getElementById('topbarBadge').textContent = 'Quiz'; }
+  if (name === 'reference') { renderRef(); document.getElementById('topbarBadge').textContent = 'Cheat Sheet'; }
+  if (name === 'learn') document.getElementById('topbarBadge').textContent = 'Chapter ' + (currentChapter + 1);
+}
+
+function renderChapterNav() {
+  let html = '<div class="chapter-heading">Chapters</div>';
+  chapters.forEach((ch, ci) => {
+    ch.lessons.forEach((ls, li) => {
+      html += `<button class="chapter-item ${ci===currentChapter&&li===currentLesson?'active':''}" onclick="goToLesson(${ci},${li})">${ls.title}</button>`;
+    });
+  });
+  document.getElementById('chapterNav').innerHTML = html;
+}
+
+function goToLesson(ci, li) {
+  currentChapter = ci; currentLesson = li;
+  renderLesson();
+  renderChapterNav();
+  document.getElementById('topbarBadge').textContent = 'Chapter ' + (ci + 1);
+}
+
+function renderLesson() {
+  const ch = chapters[currentChapter];
+  const ls = ch.lessons[currentLesson];
+  const globalIdx = chapters.slice(0, currentChapter).reduce((a, c) => a + c.lessons.length, 0) + currentLesson;
+  lessonsCompleted.add(globalIdx);
+  updateProgress();
+
+  let html = `<div class="lesson-hero"><div class="lesson-tag">${ls.tag}</div><div class="lesson-title">${ls.title}</div><div class="lesson-desc">${ls.desc}</div></div>`;
+  ls.concepts.forEach(c => {
+    html += `<div class="concept-block"><div class="concept-label">${c.label}</div>`;
+    if (c.type === 'code') html += `<div class="code-block">${c.content}</div>`;
+    else html += `<div class="text-block">${c.content}</div>`;
+    html += `</div>`;
+  });
+  if (ls.tip) html += `<div class="tip-box">💡 <strong>Tip:</strong> ${ls.tip}</div>`;
+  if (ls.warn) html += `<div class="warn-box">⚠️ <strong>Watch out:</strong> ${ls.warn}</div>`;
+  html += `<div class="lesson-nav">`;
+  if (globalIdx > 0) html += `<button class="btn" onclick="prevLesson()">← Previous</button>`;
+  if (globalIdx < totalLessons - 1) html += `<button class="btn btn-primary" onclick="nextLesson()">Next lesson →</button>`;
+  html += `<button class="btn btn-ml" onclick="document.querySelector('.nav-btn:nth-child(2)').click()">Practice flashcards →</button>`;
+  html += `</div>`;
+  document.getElementById('lessonContent').innerHTML = html;
+  window.scrollTo(0, 0);
+}
+
+function nextLesson() {
+  const ch = chapters[currentChapter];
+  if (currentLesson < ch.lessons.length - 1) { currentLesson++; }
+  else if (currentChapter < chapters.length - 1) { currentChapter++; currentLesson = 0; }
+  goToLesson(currentChapter, currentLesson);
+}
+function prevLesson() {
+  if (currentLesson > 0) { currentLesson--; }
+  else if (currentChapter > 0) { currentChapter--; currentLesson = chapters[currentChapter].lessons.length - 1; }
+  goToLesson(currentChapter, currentLesson);
+}
+
+function updateProgress() {
+  const pct = Math.round(lessonsCompleted.size / totalLessons * 100);
+  document.getElementById('sidebarProgress').style.width = pct + '%';
+  document.getElementById('progressLabel').textContent = 'Progress: ' + pct + '%';
+}
+
+function renderCard() {
+  const card = filteredCards[currentCard];
+  if (!card) return;
+  document.getElementById('fcFront').textContent = card.q;
+  document.getElementById('fcBack').textContent = card.a;
+  document.getElementById('fcBack').style.display = 'none';
+  document.getElementById('fcSideLabel').textContent = 'Question';
+  document.getElementById('fcCat').textContent = card.cat;
+  document.getElementById('fcCounter').textContent = (currentCard + 1) + ' / ' + filteredCards.length + ' cards';
+  document.getElementById('fcProgress').style.width = ((currentCard + 1) / filteredCards.length * 100).toFixed(0) + '%';
+  cardFlipped = false;
+}
+function flipCard() {
+  cardFlipped = !cardFlipped;
+  document.getElementById('fcBack').style.display = cardFlipped ? 'block' : 'none';
+  document.getElementById('fcSideLabel').textContent = cardFlipped ? 'Answer' : 'Question';
+}
+function nextCard() { currentCard = (currentCard + 1) % filteredCards.length; renderCard(); }
+function prevCard() { currentCard = (currentCard - 1 + filteredCards.length) % filteredCards.length; renderCard(); }
+function shuffleCards() { filteredCards = [...filteredCards].sort(() => Math.random() - 0.5); currentCard = 0; renderCard(); }
+function filterCards() {
+  const val = document.getElementById('fcFilter').value;
+  filteredCards = val === 'all' ? [...flashcards] : flashcards.filter(c => c.cat === val);
+  currentCard = 0; renderCard();
+  document.getElementById('topbarBadge').textContent = filteredCards.length + ' cards';
+}
+
+function renderQuiz() {
+  if (quizIndex >= quizQuestions.length) { renderScore(); return; }
+  const q = quizQuestions[quizIndex];
+  let html = `<div class="quiz-header"><span style="font-size:13px;color:var(--text2)">Question ${quizIndex + 1} of ${quizQuestions.length}</span><span style="font-size:13px;color:var(--text2)">Score: ${quizScore}</span></div>`;
+  html += `<div class="quiz-progress"><div class="quiz-prog-fill" style="width:${(quizIndex / quizQuestions.length * 100).toFixed(0)}%"></div></div>`;
+  html += `<div class="quiz-q-text">${q.q}</div>`;
+  html += `<div class="quiz-opts">` + q.opts.map((opt, i) => `<button class="quiz-opt" id="qopt${i}" onclick="answerQuiz(${i})">${opt}</button>`).join('') + `</div>`;
+  html += `<div id="quizFeedback"></div><div id="quizNext" style="display:none;"><button class="btn btn-primary" onclick="nextQuestion()">${quizIndex === quizQuestions.length - 1 ? 'See results →' : 'Next question →'}</button></div>`;
+  document.getElementById('quizContent').innerHTML = html;
+}
+
+function answerQuiz(chosen) {
+  if (quizAnswered) return;
+  quizAnswered = true;
+  const q = quizQuestions[quizIndex];
+  const correct = chosen === q.ans;
+  if (correct) quizScore++;
+  document.querySelectorAll('.quiz-opt').forEach((btn, i) => {
+    btn.disabled = true;
+    if (i === q.ans) btn.classList.add('correct');
+    else if (i === chosen && !correct) btn.classList.add('wrong');
+  });
+  const fb = document.getElementById('quizFeedback');
+  fb.className = 'quiz-feedback ' + (correct ? 'correct' : 'wrong');
+  fb.textContent = (correct ? '✓ Correct! ' : '✗ Not quite. ') + q.exp;
+  document.getElementById('quizNext').style.display = 'block';
+}
+function nextQuestion() { quizIndex++; quizAnswered = false; renderQuiz(); }
+
+function renderScore() {
+  const pct = Math.round(quizScore / quizQuestions.length * 100);
+  const grade = pct >= 80 ? '🏆 Excellent work!' : pct >= 60 ? '👍 Good job!' : '📚 Keep studying!';
+  document.getElementById('quizContent').innerHTML = `<div class="score-wrap"><div class="score-big">${quizScore}/${quizQuestions.length}</div><div class="score-sub">${pct}% correct</div><div class="score-grade">${grade}</div><div class="score-btns"><button class="btn btn-primary" onclick="quizIndex=0;quizScore=0;quizAnswered=false;renderQuiz()">Retake quiz</button><button class="btn" onclick="document.querySelector('.nav-btn:first-child').click()">Back to lessons</button></div></div>`;
+}
+
+function renderRef() {
+  const refs = [
+    { title: "Event Handlers", items: [["OnInit()", "Runs once at startup"], ["OnTick()", "Runs on every price tick"], ["OnDeinit()", "Runs once at shutdown"], ["OnCalculate()", "For custom indicators"]] },
+    { title: "Data Types", items: [["int", "Whole number"], ["double", "Decimal number"], ["string", "Text"], ["bool", "true / false"], ["datetime", "Date and time"]] },
+    { title: "Price Functions", items: [["iClose(s,tf,i)", "Close price of bar i"], ["iOpen(s,tf,i)", "Open price of bar i"], ["iHigh(s,tf,i)", "High price of bar i"], ["iLow(s,tf,i)", "Low price of bar i"]] },
+    { title: "Trading (CTrade)", items: [["trade.Buy()", "Place a buy order"], ["trade.Sell()", "Place a sell order"], ["trade.PositionClose()", "Close a position"], ["trade.PositionModify()", "Modify SL/TP"]] },
+    { title: "Account Info", items: [["ACCOUNT_BALANCE", "Account balance"], ["ACCOUNT_EQUITY", "Current equity"], ["ACCOUNT_PROFIT", "Open P&L"], ["ACCOUNT_MARGIN", "Used margin"]] },
+    { title: "Timeframes", items: [["PERIOD_M1", "1 minute"], ["PERIOD_M15", "15 minutes"], ["PERIOD_H1", "1 hour"], ["PERIOD_D1", "Daily"], ["PERIOD_W1", "Weekly"]] },
+  ];
+  document.getElementById('refGrid').innerHTML = refs.map(r => `
+    <div class="ref-card">
+      <div class="ref-card-title">${r.title}</div>
+      ${r.items.map(([code, desc]) => `<div class="ref-item"><div class="ref-code">${code}</div><div class="ref-desc">${desc}</div></div>`).join('')}
+    </div>`).join('');
+}
+
+// Init
+renderChapterNav();
+renderLesson();
+renderCard();
+</script>
+</body>
+</html>

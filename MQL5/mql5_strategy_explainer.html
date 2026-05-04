@@ -1,0 +1,996 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MQL5 Strategy Code Explainer</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,500;1,400&family=Fraunces:wght@300;400;600&family=Outfit:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #f7f5f0;
+  --bg2: #efecea;
+  --bg3: #e5e2dc;
+  --bg4: #d8d4cc;
+  --surface: #ffffff;
+  --border: rgba(0,0,0,0.07);
+  --border2: rgba(0,0,0,0.13);
+  --text: #1a1814;
+  --text2: #6b6659;
+  --text3: #a09d94;
+  --ink: #2d2a24;
+  --accent: #c4522a;
+  --accent-light: #f5ede8;
+  --accent-border: rgba(196,82,42,0.25);
+  --green: #2a7a4b;
+  --green-light: #e8f4ee;
+  --blue: #2a5fa0;
+  --blue-light: #e8eef8;
+  --amber: #b07d1a;
+  --amber-light: #fdf5e0;
+  --purple: #6b3fa0;
+  --purple-light: #f0ebf8;
+  --mono: 'IBM Plex Mono', monospace;
+  --serif: 'Fraunces', serif;
+  --sans: 'Outfit', sans-serif;
+  --r: 8px;
+  --rl: 14px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body { font-family: var(--sans); background: var(--bg); color: var(--text); min-height: 100vh; font-size: 15px; line-height: 1.6; }
+
+/* LAYOUT */
+.wrap { display: flex; min-height: 100vh; }
+.sidebar {
+  width: 280px; min-width: 280px;
+  background: var(--surface);
+  border-right: 1px solid var(--border2);
+  position: sticky; top: 0; height: 100vh;
+  overflow-y: auto; display: flex; flex-direction: column;
+}
+.main { flex: 1; min-width: 0; }
+
+/* SIDEBAR */
+.sb-head { padding: 24px 20px 18px; border-bottom: 1px solid var(--border); }
+.sb-title { font-family: var(--serif); font-size: 17px; font-weight: 600; color: var(--text); letter-spacing: -0.01em; }
+.sb-sub { font-size: 11px; color: var(--text3); margin-top: 3px; text-transform: uppercase; letter-spacing: 0.09em; }
+.sb-list { padding: 14px 12px; flex: 1; }
+.sb-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text3); font-weight: 500; padding: 0 8px; margin: 10px 0 5px; }
+.sb-item {
+  display: flex; align-items: flex-start; gap: 10px;
+  width: 100%; padding: 10px 10px; border-radius: var(--r);
+  border: none; background: transparent;
+  cursor: pointer; text-align: left; transition: all 0.14s;
+  margin-bottom: 2px;
+}
+.sb-item:hover { background: var(--bg); }
+.sb-item.active { background: var(--accent-light); }
+.sb-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  margin-top: 5px; flex-shrink: 0;
+}
+.sb-item-text { display: flex; flex-direction: column; gap: 1px; }
+.sb-item-name { font-size: 13px; font-weight: 500; color: var(--text); }
+.sb-item.active .sb-item-name { color: var(--accent); }
+.sb-item-tag { font-size: 11px; color: var(--text3); }
+
+/* TOPBAR */
+.topbar {
+  background: var(--surface); border-bottom: 1px solid var(--border2);
+  padding: 14px 36px; display: flex; align-items: center;
+  justify-content: space-between; position: sticky; top: 0; z-index: 50;
+}
+.tb-title { font-family: var(--serif); font-size: 18px; font-weight: 600; color: var(--text); }
+.tb-badge { display: flex; gap: 6px; align-items: center; }
+.badge {
+  font-size: 11px; padding: 3px 10px; border-radius: 999px;
+  font-weight: 500; border: 1px solid transparent;
+}
+.badge-trend { background: var(--blue-light); color: var(--blue); border-color: rgba(42,95,160,0.2); }
+.badge-mean { background: var(--purple-light); color: var(--purple); border-color: rgba(107,63,160,0.2); }
+.badge-momentum { background: var(--amber-light); color: var(--amber); border-color: rgba(176,125,26,0.2); }
+.badge-volatility { background: var(--green-light); color: var(--green); border-color: rgba(42,122,75,0.2); }
+.badge-oscillator { background: var(--accent-light); color: var(--accent); border-color: var(--accent-border); }
+
+/* CONTENT */
+.content { padding: 36px 40px 80px; max-width: 900px; }
+.strategy-page { display: none; animation: fadeUp 0.22s ease; }
+.strategy-page.active { display: block; }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+/* STRATEGY HERO */
+.s-hero { margin-bottom: 32px; padding-bottom: 28px; border-bottom: 1px solid var(--border2); }
+.s-tag-row { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; flex-wrap: wrap; }
+.s-title { font-family: var(--serif); font-size: 34px; font-weight: 600; color: var(--text); letter-spacing: -0.02em; line-height: 1.15; margin-bottom: 12px; }
+.s-intro { font-size: 15px; color: var(--text2); line-height: 1.8; max-width: 700px; }
+.s-logic-box {
+  background: var(--bg2); border: 1px solid var(--border2);
+  border-radius: var(--rl); padding: 18px 22px; margin-top: 20px;
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px;
+}
+.s-logic-item { display: flex; flex-direction: column; gap: 3px; }
+.s-logic-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.09em; color: var(--text3); font-weight: 500; }
+.s-logic-val { font-size: 13.5px; color: var(--text); font-weight: 500; }
+
+/* CODE EXPLAINER */
+.explainer { margin-bottom: 40px; }
+.block-section { margin-bottom: 28px; }
+.bs-header {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--ink); border-radius: var(--rl) var(--rl) 0 0;
+  padding: 12px 18px;
+}
+.bs-num {
+  width: 22px; height: 22px; border-radius: 50%;
+  background: rgba(255,255,255,0.12); display: flex;
+  align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 500; color: rgba(255,255,255,0.7);
+  flex-shrink: 0;
+}
+.bs-title-text { font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.9); font-family: var(--mono); }
+.code-area {
+  background: #1e1c18; border-radius: 0;
+  padding: 16px 20px; overflow-x: auto;
+  font-family: var(--mono); font-size: 13px; line-height: 1.9;
+  white-space: pre; border-left: 3px solid transparent;
+}
+.explain-area {
+  background: var(--surface); border: 1px solid var(--border2);
+  border-top: none; border-radius: 0 0 var(--rl) var(--rl);
+  overflow: hidden;
+}
+.explain-item {
+  padding: 14px 20px; border-bottom: 1px solid var(--border);
+  display: grid; grid-template-columns: 1fr 2fr; gap: 20px;
+  transition: background 0.12s;
+}
+.explain-item:last-child { border-bottom: none; }
+.explain-item:hover { background: var(--bg); }
+.ei-code {
+  font-family: var(--mono); font-size: 12px;
+  color: #888; background: var(--bg2);
+  padding: 4px 8px; border-radius: 5px;
+  align-self: start; word-break: break-all;
+  border: 1px solid var(--border);
+}
+.ei-text { font-size: 13.5px; color: var(--text2); line-height: 1.7; }
+.ei-text strong { color: var(--text); font-weight: 500; }
+.ei-text .why { 
+  display: inline-block; margin-top: 5px; font-size: 12px;
+  color: var(--accent); background: var(--accent-light);
+  padding: 2px 8px; border-radius: 4px;
+}
+
+/* COLORS IN CODE */
+.kw { color: #c792ea; }
+.fn { color: #82aaff; }
+.str { color: #c3e88d; }
+.cmt { color: #546e7a; font-style: italic; }
+.num { color: #f78c6c; }
+.type { color: #ffcb6b; }
+.op { color: #89ddff; }
+.const { color: #ff9cac; }
+
+/* CONCEPT PILLS */
+.concept-row { display: flex; gap: 8px; flex-wrap: wrap; margin: 20px 0; }
+.concept-pill {
+  padding: 5px 14px; border-radius: 999px; font-size: 12px; font-weight: 500;
+  border: 1px solid var(--border2); background: var(--surface); color: var(--text2);
+}
+
+/* WHY BOX */
+.why-box {
+  border-radius: var(--rl); padding: 16px 20px; margin: 16px 0;
+  display: flex; gap: 12px; align-items: flex-start;
+}
+.why-box.tip { background: var(--green-light); border: 1px solid rgba(42,122,75,0.2); }
+.why-box.warn { background: var(--amber-light); border: 1px solid rgba(176,125,26,0.2); }
+.why-box.info { background: var(--blue-light); border: 1px solid rgba(42,95,160,0.2); }
+.why-box-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+.why-box-text { font-size: 13.5px; line-height: 1.7; }
+.why-box.tip .why-box-text { color: var(--green); }
+.why-box.warn .why-box-text { color: var(--amber); }
+.why-box.info .why-box-text { color: var(--blue); }
+
+/* FULL CODE VIEW */
+.full-code-wrap { margin-top: 32px; }
+.full-code-header {
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--ink); padding: 12px 18px; border-radius: var(--rl) var(--rl) 0 0;
+}
+.full-code-title { font-family: var(--mono); font-size: 12px; color: rgba(255,255,255,0.6); }
+.copy-btn {
+  font-size: 11px; padding: 4px 12px; border-radius: 5px;
+  border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.07);
+  color: rgba(255,255,255,0.6); cursor: pointer; font-family: var(--sans);
+  transition: all 0.12s;
+}
+.copy-btn:hover { background: rgba(255,255,255,0.13); color: rgba(255,255,255,0.9); }
+.full-code-body {
+  background: #1e1c18; border-radius: 0 0 var(--rl) var(--rl);
+  padding: 20px 24px; overflow-x: auto;
+  font-family: var(--mono); font-size: 12.5px; line-height: 1.85;
+  white-space: pre;
+}
+
+/* SCROLLBAR */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--bg4); border-radius: 3px; }
+
+@media (max-width: 820px) {
+  .sidebar { display: none; }
+  .content { padding: 20px 16px 60px; }
+  .topbar { padding: 12px 16px; }
+  .explain-item { grid-template-columns: 1fr; gap: 8px; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sb-head">
+    <div class="sb-title">Strategy Explainer</div>
+    <div class="sb-sub">MQL5 Code Breakdowns</div>
+  </div>
+  <div class="sb-list">
+    <div class="sb-label">Trend Following</div>
+    <button class="sb-item active" onclick="showStrategy('ema', this)">
+      <div class="sb-dot" style="background:#2a5fa0;"></div>
+      <div class="sb-item-text"><div class="sb-item-name">EMA Crossover</div><div class="sb-item-tag">Trend · Beginner</div></div>
+    </button>
+    <button class="sb-item" onclick="showStrategy('macd', this)">
+      <div class="sb-dot" style="background:#2a5fa0;"></div>
+      <div class="sb-item-text"><div class="sb-item-name">MACD Strategy</div><div class="sb-item-tag">Trend · Intermediate</div></div>
+    </button>
+    <div class="sb-label">Mean Reversion</div>
+    <button class="sb-item" onclick="showStrategy('bollinger', this)">
+      <div class="sb-dot" style="background:#6b3fa0;"></div>
+      <div class="sb-item-text"><div class="sb-item-name">Bollinger Bands</div><div class="sb-item-tag">Mean Reversion · Intermediate</div></div>
+    </button>
+    <button class="sb-item" onclick="showStrategy('meanrev', this)">
+      <div class="sb-dot" style="background:#6b3fa0;"></div>
+      <div class="sb-item-text"><div class="sb-item-name">Mean Reversion (Z-Score)</div><div class="sb-item-tag">Mean Reversion · Advanced</div></div>
+    </button>
+    <div class="sb-label">Oscillators</div>
+    <button class="sb-item" onclick="showStrategy('rsi', this)">
+      <div class="sb-dot" style="background:#c4522a;"></div>
+      <div class="sb-item-text"><div class="sb-item-name">RSI Overbought/Oversold</div><div class="sb-item-tag">Oscillator · Beginner</div></div>
+    </button>
+    <div class="sb-label">Breakout</div>
+    <button class="sb-item" onclick="showStrategy('breakout', this)">
+      <div class="sb-dot" style="background:#2a7a4b;"></div>
+      <div class="sb-item-text"><div class="sb-item-name">Donchian Channel Breakout</div><div class="sb-item-tag">Breakout · Intermediate</div></div>
+    </button>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="topbar">
+    <div class="tb-title" id="topTitle">EMA Crossover Strategy</div>
+    <div class="tb-badge"><span class="badge badge-trend" id="topBadge">Trend Following</span></div>
+  </div>
+  <div class="content">
+
+    <!-- =================== EMA CROSSOVER =================== -->
+    <div id="page-ema" class="strategy-page active">
+      <div class="s-hero">
+        <div class="s-tag-row">
+          <span class="badge badge-trend">Trend Following</span>
+          <span class="badge" style="background:var(--bg2);color:var(--text2);border-color:var(--border2);">Beginner Friendly</span>
+        </div>
+        <div class="s-title">EMA Crossover Strategy</div>
+        <div class="s-intro">The EMA (Exponential Moving Average) crossover is one of the most fundamental and widely-used trading strategies. It works by tracking two moving averages — one fast-reacting, one slow-reacting — and trading whenever they cross. When the fast line crosses above the slow line, the market is gaining upward momentum. When it crosses below, downward momentum is building. The "exponential" part means recent prices are weighted more heavily than older ones, making it more responsive than a simple average.</div>
+        <div class="s-logic-box">
+          <div class="s-logic-item"><div class="s-logic-label">Entry Signal</div><div class="s-logic-val">Fast EMA crosses above Slow EMA → Buy</div></div>
+          <div class="s-logic-item"><div class="s-logic-label">Exit Signal</div><div class="s-logic-val">Fast EMA crosses below Slow EMA → Close</div></div>
+          <div class="s-logic-item"><div class="s-logic-label">Default Periods</div><div class="s-logic-val">Fast: 9 | Slow: 21</div></div>
+          <div class="s-logic-item"><div class="s-logic-label">Best Market</div><div class="s-logic-val">Trending markets (avoid ranging)</div></div>
+        </div>
+      </div>
+
+      <div class="explainer">
+
+        <div class="block-section">
+          <div class="bs-header">
+            <div class="bs-num">1</div>
+            <div class="bs-title-text">Properties & Input Parameters</div>
+          </div>
+          <div class="code-area"><span class="kw">#property</span> copyright <span class="str">"MQL5 Learner"</span>
+<span class="kw">#property</span> version   <span class="str">"1.00"</span>
+<span class="kw">#property</span> strict
+
+<span class="kw">input</span> <span class="type">int</span>    FastPeriod = <span class="num">9</span>;
+<span class="kw">input</span> <span class="type">int</span>    SlowPeriod = <span class="num">21</span>;
+<span class="kw">input</span> <span class="type">double</span> LotSize    = <span class="num">0.1</span>;</div>
+          <div class="explain-area">
+            <div class="explain-item">
+              <div class="ei-code">#property strict</div>
+              <div class="ei-text"><strong>Enables strict compiler mode.</strong> This forces MQL5 to catch more potential bugs at compile time — like using undeclared variables or mismatched types. It's like turning on safety warnings. Always include it. <span class="why">Why: Catches mistakes before they cost you money in live trading.</span></div>
+            </div>
+            <div class="explain-item">
+              <div class="ei-code">input int FastPeriod = 9</div>
+              <div class="ei-text"><strong>The <code>input</code> keyword creates a user-editable parameter.</strong> When you attach this EA to a chart, MT5 shows a dialog where you can change FastPeriod from 9 to anything else — no code changes needed. The default value is 9 (meaning the EMA will average the last 9 candles). <span class="why">Why 9 and 21? These are classic values — 9 reacts quickly to price moves, 21 moves more smoothly. You can experiment with other pairs like 5/20 or 10/50.</span></div>
+            </div>
+            <div class="explain-item">
+              <div class="ei-code">input double LotSize = 0.1</div>
+              <div class="ei-text"><strong>How many lots to trade per order.</strong> 0.1 lots = 1 mini lot = $1 per pip on most forex pairs. Keeping it as an input means the user can adjust risk without touching the code. <span class="why">Why not hardcode it? Flexibility — different account sizes need different lot sizes.</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="block-section">
+          <div class="bs-header">
+            <div class="bs-num">2</div>
+            <div class="bs-title-text">Global Variables & OnInit()</div>
+          </div>
+          <div class="code-area"><span class="type">int</span> emaFastHandle, emaSlowHandle;
+
+<span class="type">int</span> <span class="fn">OnInit</span>()
+{
+   emaFastHandle = <span class="fn">iMA</span>(_Symbol, _Period, FastPeriod, <span class="num">0</span>, MODE_EMA, PRICE_CLOSE);
+   emaSlowHandle = <span class="fn">iMA</span>(_Symbol, _Period, SlowPeriod, <span class="num">0</span>, MODE_EMA, PRICE_CLOSE);
+
+   <span class="kw">if</span>(emaFastHandle == INVALID_HANDLE || emaSlowHandle == INVALID_HANDLE)
+   {
+      <span class="fn">Print</span>(<span class="str">"Error creating indicator handles!"</span>);
+      <span class="kw">return</span>(INIT_FAILED);
+   }
+   <span class="kw">return</span>(INIT_SUCCEEDED);
+}</div>
+          <div class="explain-area">
+            <div class="explain-item">
+              <div class="ei-code">int emaFastHandle</div>
+              <div class="ei-text"><strong>A handle is like a remote control for an indicator.</strong> When you call iMA(), MQL5 doesn't give you the EMA values directly — it gives you an integer "handle" (a reference number). You use this handle later to request actual values. Think of it like a library card number — you show it to get the book. <span class="why">Why this design? Handles let MT5 calculate indicators efficiently in the background without recalculating everything each tick.</span></div>
+            </div>
+            <div class="explain-item">
+              <div class="ei-code">iMA(_Symbol, _Period, FastPeriod, 0, MODE_EMA, PRICE_CLOSE)</div>
+              <div class="ei-text"><strong>This is the indicator creation function. Let's break down every argument:</strong><br><br>
+                • <strong>_Symbol</strong> — use the chart's current pair (e.g. EURUSD)<br>
+                • <strong>_Period</strong> — use the chart's current timeframe (e.g. H1)<br>
+                • <strong>FastPeriod</strong> — how many bars to average (our input, default 9)<br>
+                • <strong>0</strong> — shift: 0 means no offset, indicator aligns with current bar<br>
+                • <strong>MODE_EMA</strong> — use Exponential Moving Average formula (not simple/weighted)<br>
+                • <strong>PRICE_CLOSE</strong> — calculate based on candle closing prices<br>
+                <span class="why">Why PRICE_CLOSE? Close prices are the most important — they represent where buyers and sellers agreed to end the battle for that candle.</span></div>
+            </div>
+            <div class="explain-item">
+              <div class="ei-code">if handle == INVALID_HANDLE</div>
+              <div class="ei-text"><strong>Always check if indicator creation succeeded.</strong> If MT5 can't create the indicator (e.g. not enough history, wrong symbol), it returns INVALID_HANDLE (-1). Returning INIT_FAILED tells MT5 the EA failed to start cleanly, and MT5 will remove it from the chart automatically. <span class="why">Why: Without this check, the EA might silently trade with wrong data and cause unexpected losses.</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="block-section">
+          <div class="bs-header">
+            <div class="bs-num">3</div>
+            <div class="bs-title-text">OnTick() — The Trading Logic</div>
+          </div>
+          <div class="code-area"><span class="type">double</span> fastNow[<span class="num">2</span>], slowNow[<span class="num">2</span>];
+
+<span class="kw">void</span> <span class="fn">OnTick</span>()
+{
+   <span class="kw">if</span>(<span class="fn">CopyBuffer</span>(emaFastHandle, <span class="num">0</span>, <span class="num">0</span>, <span class="num">2</span>, fastNow) < <span class="num">2</span>) <span class="kw">return</span>;
+   <span class="kw">if</span>(<span class="fn">CopyBuffer</span>(emaSlowHandle, <span class="num">0</span>, <span class="num">0</span>, <span class="num">2</span>, slowNow) < <span class="num">2</span>) <span class="kw">return</span>;
+
+   <span class="type">bool</span> crossedUp   = (fastNow[<span class="num">1</span>] > slowNow[<span class="num">1</span>]) &amp;&amp; (fastNow[<span class="num">0</span>] &lt;= slowNow[<span class="num">0</span>]);
+   <span class="type">bool</span> crossedDown = (fastNow[<span class="num">1</span>] &lt; slowNow[<span class="num">1</span>]) &amp;&amp; (fastNow[<span class="num">0</span>] >= slowNow[<span class="num">0</span>]);
+
+   <span class="kw">if</span>(crossedUp &amp;&amp; <span class="fn">PositionsTotal</span>() == <span class="num">0</span>)
+      trade.<span class="fn">Buy</span>(LotSize, _Symbol);
+
+   <span class="kw">if</span>(crossedDown &amp;&amp; <span class="fn">PositionsTotal</span>() > <span class="num">0</span>)
+      trade.<span class="fn">PositionClose</span>(_Symbol);
+}</div>
+          <div class="explain-area">
+            <div class="explain-item">
+              <div class="ei-code">double fastNow[2]</div>
+              <div class="ei-text"><strong>An array to store 2 EMA values.</strong> We need TWO values — the current bar's EMA and the previous bar's EMA. Why? To detect a crossover we must compare: "was fast above slow before? Is it below now?" That requires looking at two moments in time. <span class="why">Index [0] = previous completed bar. Index [1] = the bar before that. (CopyBuffer fills arrays right-to-left: newest data goes to index 0.)</span></div>
+            </div>
+            <div class="explain-item">
+              <div class="ei-code">CopyBuffer(handle, 0, 0, 2, array)</div>
+              <div class="ei-text"><strong>CopyBuffer retrieves actual indicator values from a handle.</strong> Arguments: handle, buffer number (0 = main line), start position (0 = most recent), count (2 values), destination array. It returns how many values it copied — if less than 2, data isn't ready yet, so we <code>return</code> (skip this tick). <span class="why">Why check the return value? On the very first ticks when the EA starts, there may not be enough history to compute the EMA. Skipping those ticks prevents errors.</span></div>
+            </div>
+            <div class="explain-item">
+              <div class="ei-code">bool crossedUp = (fastNow[1] > slowNow[1]) && (fastNow[0] &lt;= slowNow[0])</div>
+              <div class="ei-text"><strong>This is the crossover detection logic — the heart of the strategy.</strong> Let's decode it:<br><br>
+                • <strong>fastNow[1] &gt; slowNow[1]</strong> — on the PREVIOUS bar, fast EMA was ABOVE slow EMA<br>
+                • <strong>fastNow[0] &lt;= slowNow[0]</strong> — on the bar BEFORE THAT, fast was BELOW or equal<br>
+                • Both conditions together = the fast line just crossed downward = BEARISH signal<br><br>
+                The crossedUp version is the mirror: fast was below, now it's above = BULLISH. <span class="why">Why compare two consecutive bars? A single comparison only tells you current position, not direction of movement. Comparing two bars tells you it just changed — that's the signal.</span></div>
+            </div>
+            <div class="explain-item">
+              <div class="ei-code">PositionsTotal() == 0</div>
+              <div class="ei-text"><strong>Check if we already have an open trade before buying.</strong> PositionsTotal() returns the number of currently open positions. We only buy if we have none open — this prevents the EA from opening trade after trade every tick while the crossover condition is still true. <span class="why">Without this check, a bullish crossover lasting many ticks would open hundreds of buy orders!</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="why-box info">
+          <div class="why-box-icon">💡</div>
+          <div class="why-box-text"><strong>Why EMA and not SMA?</strong> A Simple Moving Average (SMA) gives equal weight to all bars. An EMA gives more weight to recent bars. This means the EMA reacts faster to new price moves — crossover signals come earlier, which is both a strength (enter trend sooner) and a weakness (more false signals in choppy markets).</div>
+        </div>
+        <div class="why-box warn">
+          <div class="why-box-icon">⚠️</div>
+          <div class="why-box-text"><strong>The biggest weakness of crossover strategies</strong> is "whipsawing" — when price oscillates around the crossover point repeatedly, generating many false buy/sell signals in a row. Always add a filter (like checking the ADX indicator to confirm a trend exists) before trading this live.</div>
+        </div>
+
+        <div class="full-code-wrap">
+          <div class="full-code-header">
+            <span class="full-code-title">EMA_Crossover.mq5 — complete code</span>
+            <button class="copy-btn" onclick="copyCode('ema-full')">Copy</button>
+          </div>
+          <div class="full-code-body" id="ema-full"><span class="kw">#property</span> copyright <span class="str">"MQL5 Learner"</span>
+<span class="kw">#property</span> version   <span class="str">"1.00"</span>
+<span class="kw">#property</span> strict
+<span class="kw">#include</span> <span class="str">&lt;Trade\Trade.mqh&gt;</span>
+
+<span class="kw">input</span> <span class="type">int</span>    FastPeriod = <span class="num">9</span>;
+<span class="kw">input</span> <span class="type">int</span>    SlowPeriod = <span class="num">21</span>;
+<span class="kw">input</span> <span class="type">double</span> LotSize    = <span class="num">0.1</span>;
+
+<span class="type">int</span>    emaFastHandle, emaSlowHandle;
+<span class="type">double</span> fastNow[<span class="num">2</span>], slowNow[<span class="num">2</span>];
+CTrade trade;
+
+<span class="type">int</span> <span class="fn">OnInit</span>()
+{
+   emaFastHandle = <span class="fn">iMA</span>(_Symbol, _Period, FastPeriod, <span class="num">0</span>, MODE_EMA, PRICE_CLOSE);
+   emaSlowHandle = <span class="fn">iMA</span>(_Symbol, _Period, SlowPeriod, <span class="num">0</span>, MODE_EMA, PRICE_CLOSE);
+   <span class="kw">if</span>(emaFastHandle == INVALID_HANDLE || emaSlowHandle == INVALID_HANDLE)
+      <span class="kw">return</span>(INIT_FAILED);
+   <span class="kw">return</span>(INIT_SUCCEEDED);
+}
+
+<span class="kw">void</span> <span class="fn">OnTick</span>()
+{
+   <span class="kw">if</span>(<span class="fn">CopyBuffer</span>(emaFastHandle, <span class="num">0</span>, <span class="num">0</span>, <span class="num">2</span>, fastNow) < <span class="num">2</span>) <span class="kw">return</span>;
+   <span class="kw">if</span>(<span class="fn">CopyBuffer</span>(emaSlowHandle, <span class="num">0</span>, <span class="num">0</span>, <span class="num">2</span>, slowNow) < <span class="num">2</span>) <span class="kw">return</span>;
+
+   <span class="type">bool</span> crossedUp   = (fastNow[<span class="num">1</span>] > slowNow[<span class="num">1</span>]) &amp;&amp; (fastNow[<span class="num">0</span>] &lt;= slowNow[<span class="num">0</span>]);
+   <span class="type">bool</span> crossedDown = (fastNow[<span class="num">1</span>] &lt; slowNow[<span class="num">1</span>]) &amp;&amp; (fastNow[<span class="num">0</span>] >= slowNow[<span class="num">0</span>]);
+
+   <span class="kw">if</span>(crossedUp &amp;&amp; <span class="fn">PositionsTotal</span>() == <span class="num">0</span>)
+      trade.<span class="fn">Buy</span>(LotSize, _Symbol);
+
+   <span class="kw">if</span>(crossedDown &amp;&amp; <span class="fn">PositionsTotal</span>() > <span class="num">0</span>)
+      trade.<span class="fn">PositionClose</span>(_Symbol);
+}
+
+<span class="kw">void</span> <span class="fn">OnDeinit</span>(<span class="kw">const</span> <span class="type">int</span> reason)
+{
+   <span class="fn">IndicatorRelease</span>(emaFastHandle);
+   <span class="fn">IndicatorRelease</span>(emaSlowHandle);
+}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- =================== RSI =================== -->
+    <div id="page-rsi" class="strategy-page">
+      <div class="s-hero">
+        <div class="s-tag-row">
+          <span class="badge badge-oscillator">Oscillator</span>
+          <span class="badge" style="background:var(--bg2);color:var(--text2);border-color:var(--border2);">Beginner Friendly</span>
+        </div>
+        <div class="s-title">RSI Overbought / Oversold Strategy</div>
+        <div class="s-intro">The RSI (Relative Strength Index) is a momentum oscillator that measures the speed and magnitude of recent price changes. It produces a value between 0 and 100. Above 70 means the asset is "overbought" — it has risen too far, too fast — and a pullback may come. Below 30 means "oversold" — it has fallen too fast — and a bounce may be due. This strategy bets on those reversals.</div>
+        <div class="s-logic-box">
+          <div class="s-logic-item"><div class="s-logic-label">Buy Signal</div><div class="s-logic-val">RSI crosses above 30 (from oversold)</div></div>
+          <div class="s-logic-item"><div class="s-logic-label">Sell Signal</div><div class="s-logic-val">RSI crosses above 70 (overbought)</div></div>
+          <div class="s-logic-item"><div class="s-logic-label">RSI Period</div><div class="s-logic-val">14 bars (industry standard)</div></div>
+          <div class="s-logic-item"><div class="s-logic-label">Best Market</div><div class="s-logic-val">Ranging / sideways markets</div></div>
+        </div>
+      </div>
+
+      <div class="explainer">
+        <div class="block-section">
+          <div class="bs-header"><div class="bs-num">1</div><div class="bs-title-text">RSI Indicator Handle</div></div>
+          <div class="code-area"><span class="type">int</span> rsiHandle;
+<span class="type">double</span> rsiValues[<span class="num">3</span>];
+
+<span class="type">int</span> <span class="fn">OnInit</span>()
+{
+   rsiHandle = <span class="fn">iRSI</span>(_Symbol, _Period, <span class="num">14</span>, PRICE_CLOSE);
+   <span class="kw">if</span>(rsiHandle == INVALID_HANDLE) <span class="kw">return</span>(INIT_FAILED);
+   <span class="kw">return</span>(INIT_SUCCEEDED);
+}</div>
+          <div class="explain-area">
+            <div class="explain-item">
+              <div class="ei-code">iRSI(_Symbol, _Period, 14, PRICE_CLOSE)</div>
+              <div class="ei-text"><strong>Creates the RSI indicator.</strong> The 14 is the lookback period — RSI compares average gains vs average losses over the last 14 candles. This period was chosen by RSI's creator Welles Wilder and remains the default. Shorter periods (7) make RSI more sensitive but noisier. Longer (21) makes it smoother but slower. <span class="why">Why 14? It was originally calibrated for weekly charts. On daily charts it works well because 14 days covers about 3 trading weeks.</span></div>
+            </div>
+            <div class="explain-item">
+              <div class="ei-code">double rsiValues[3]</div>
+              <div class="ei-text"><strong>We copy 3 RSI values to detect when RSI crosses the 30 or 70 line.</strong> With 3 values we can check: was RSI below 30 two bars ago, did it recover above 30 last bar? That gives a clean "just crossed" signal rather than just "RSI is above 30 right now." <span class="why">More values = more context = more reliable signal detection.</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="block-section">
+          <div class="bs-header"><div class="bs-num">2</div><div class="bs-title-text">RSI Trading Logic</div></div>
+          <div class="code-area"><span class="kw">void</span> <span class="fn">OnTick</span>()
+{
+   <span class="kw">if</span>(<span class="fn">CopyBuffer</span>(rsiHandle, <span class="num">0</span>, <span class="num">0</span>, <span class="num">3</span>, rsiValues) < <span class="num">3</span>) <span class="kw">return</span>;
+
+   <span class="type">double</span> rsiCurrent  = rsiValues[<span class="num">0</span>];
+   <span class="type">double</span> rsiPrevious = rsiValues[<span class="num">1</span>];
+
+   <span class="cmt">// BUY: RSI just crossed back above 30 (oversold recovery)</span>
+   <span class="type">bool</span> buySignal  = (rsiPrevious &lt; <span class="num">30</span>) &amp;&amp; (rsiCurrent >= <span class="num">30</span>);
+
+   <span class="cmt">// SELL: RSI just crossed above 70 (overbought — exit longs)</span>
+   <span class="type">bool</span> sellSignal = (rsiPrevious &lt; <span class="num">70</span>) &amp;&amp; (rsiCurrent >= <span class="num">70</span>);
+
+   <span class="kw">if</span>(buySignal &amp;&amp; <span class="fn">PositionsTotal</span>() == <span class="num">0</span>)
+      trade.<span class="fn">Buy</span>(LotSize, _Symbol);
+
+   <span class="kw">if</span>(sellSignal &amp;&amp; <span class="fn">PositionsTotal</span>() > <span class="num">0</span>)
+      trade.<span class="fn">PositionClose</span>(_Symbol);
+}</div>
+          <div class="explain-area">
+            <div class="explain-item">
+              <div class="ei-code">rsiValues[0] vs rsiValues[1]</div>
+              <div class="ei-text"><strong>CopyBuffer fills arrays so index [0] = most recent bar, [1] = previous bar.</strong> So rsiValues[0] is the RSI value RIGHT NOW, and rsiValues[1] is what RSI was on the last completed candle. By comparing these two, we can tell if RSI just crossed a threshold this tick. <span class="why">This is the correct way to detect a "just crossed" event — not just checking if the value is currently above/below the level.</span></div>
+            </div>
+            <div class="explain-item">
+              <div class="ei-code">rsiPrevious &lt; 30 && rsiCurrent >= 30</div>
+              <div class="ei-text"><strong>The oversold recovery signal — one of the cleanest patterns in technical analysis.</strong> This checks: "was RSI in oversold territory (below 30) on the last bar, AND has it now recovered back above 30?" That recovery is the actual buy signal — not just "RSI is low." RSI being low means it's oversold. RSI crossing back above 30 means the selling pressure is easing and buyers may be stepping in. <span class="why">We wait for the CROSS, not just the level. RSI can stay below 30 for many bars in a downtrend — waiting for the recovery reduces false entries.</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="why-box tip">
+          <div class="why-box-icon">💡</div>
+          <div class="why-box-text"><strong>How RSI is actually calculated:</strong> RSI = 100 - (100 / (1 + RS)) where RS = Average Gain over N periods / Average Loss over N periods. If average gain is 0.5% and average loss is 0.25%, RS = 2, RSI = 100 - (100/3) = 66.7. You don't need to calculate this yourself — iRSI() does it for you.</div>
+        </div>
+        <div class="why-box warn">
+          <div class="why-box-icon">⚠️</div>
+          <div class="why-box-text"><strong>RSI strategies fail in strong trends.</strong> In a powerful downtrend, RSI can stay below 30 for weeks. "Oversold" doesn't mean it will go up — it means it HAS gone down a lot. Always check the bigger timeframe trend direction before fading an RSI extreme.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- =================== BOLLINGER =================== -->
+    <div id="page-bollinger" class="strategy-page">
+      <div class="s-hero">
+        <div class="s-tag-row">
+          <span class="badge badge-mean">Mean Reversion</span>
+          <span class="badge" style="background:var(--bg2);color:var(--text2);border-color:var(--border2);">Intermediate</span>
+        </div>
+        <div class="s-title">Bollinger Bands Strategy</div>
+        <div class="s-intro">Bollinger Bands consist of three lines plotted around price: a middle SMA (simple moving average), and two outer bands placed 2 standard deviations above and below it. The key insight is that about 95% of all price action falls within these bands. When price touches or pierces the outer band, it is statistically unusual — and a reversion back toward the middle band is likely.</div>
+        <div class="s-logic-box">
+          <div class="s-logic-item"><div class="s-logic-label">Buy Signal</div><div class="s-logic-val">Price touches lower band → Buy</div></div>
+          <div class="s-logic-item"><div class="s-logic-label">Exit Signal</div><div class="s-logic-val">Price reaches middle band (SMA)</div></div>
+          <div class="s-logic-item"><div class="s-logic-label">Parameters</div><div class="s-logic-val">Period: 20 | Deviation: 2.0</div></div>
+          <div class="s-logic-item"><div class="s-logic-label">Best Market</div><div class="s-logic-val">Ranging / low-volatility markets</div></div>
+        </div>
+      </div>
+
+      <div class="explainer">
+        <div class="block-section">
+          <div class="bs-header"><div class="bs-num">1</div><div class="bs-title-text">Bollinger Band Handle & Buffers</div></div>
+          <div class="code-area"><span class="type">int</span>    bbHandle;
+<span class="type">double</span> bbUpper[<span class="num">2</span>], bbMiddle[<span class="num">2</span>], bbLower[<span class="num">2</span>];
+
+<span class="kw">input</span> <span class="type">int</span>    BBPeriod     = <span class="num">20</span>;
+<span class="kw">input</span> <span class="type">double</span> BBDeviation  = <span class="num">2.0</span>;
+
+<span class="type">int</span> <span class="fn">OnInit</span>()
+{
+   bbHandle = <span class="fn">iBands</span>(_Symbol, _Period, BBPeriod, <span class="num">0</span>, BBDeviation, PRICE_CLOSE);
+   <span class="kw">if</span>(bbHandle == INVALID_HANDLE) <span class="kw">return</span>(INIT_FAILED);
+   <span class="kw">return</span>(INIT_SUCCEEDED);
+}</div>
+          <div class="explain-area">
+            <div class="explain-item">
+              <div class="ei-code">iBands(..., BBPeriod, 0, BBDeviation, ...)</div>
+              <div class="ei-text"><strong>iBands() creates Bollinger Bands.</strong> Key arguments:<br><br>
+                • <strong>BBPeriod = 20</strong> — the middle band is a 20-bar SMA. 20 is the standard (roughly one trading month)<br>
+                • <strong>0</strong> — band shift (0 = no offset; 1 would shift the bands one bar forward)<br>
+                • <strong>BBDeviation = 2.0</strong> — the bands are placed 2 standard deviations from the middle. Statistically, 95.4% of a normal distribution falls within ±2 std devs<br>
+                <span class="why">Why 2.0 deviations? It's a balance — 1.0 would be too tight (price touches bands constantly), 3.0 would be too loose (signals are too rare). 2.0 catches extremes without excessive signals.</span></div>
+            </div>
+            <div class="explain-item">
+              <div class="ei-code">bbUpper, bbMiddle, bbLower arrays</div>
+              <div class="ei-text"><strong>Bollinger Bands have 3 separate data buffers</strong>, each with their own index. When you call CopyBuffer, you need to specify which band you want: buffer 0 = middle band (SMA), buffer 1 = upper band, buffer 2 = lower band. That's why we need three separate arrays. <span class="why">Each buffer is like a separate data stream — middle shows trend, upper/lower show volatility extremes.</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="block-section">
+          <div class="bs-header"><div class="bs-num">2</div><div class="bs-title-text">Band Touch Logic</div></div>
+          <div class="code-area"><span class="kw">void</span> <span class="fn">OnTick</span>()
+{
+   <span class="kw">if</span>(<span class="fn">CopyBuffer</span>(bbHandle, <span class="num">0</span>, <span class="num">0</span>, <span class="num">2</span>, bbMiddle) < <span class="num">2</span>) <span class="kw">return</span>;
+   <span class="kw">if</span>(<span class="fn">CopyBuffer</span>(bbHandle, <span class="num">1</span>, <span class="num">0</span>, <span class="num">2</span>, bbUpper)  < <span class="num">2</span>) <span class="kw">return</span>;
+   <span class="kw">if</span>(<span class="fn">CopyBuffer</span>(bbHandle, <span class="num">2</span>, <span class="num">0</span>, <span class="num">2</span>, bbLower)  < <span class="num">2</span>) <span class="kw">return</span>;
+
+   <span class="type">double</span> ask    = <span class="fn">SymbolInfoDouble</span>(_Symbol, SYMBOL_ASK);
+   <span class="type">double</span> bid    = <span class="fn">SymbolInfoDouble</span>(_Symbol, SYMBOL_BID);
+   <span class="type">double</span> close1 = <span class="fn">iClose</span>(_Symbol, _Period, <span class="num">1</span>); <span class="cmt">// last completed bar</span>
+
+   <span class="cmt">// Price touched lower band (oversold extreme)</span>
+   <span class="type">bool</span> touchedLower = (close1 &lt;= bbLower[<span class="num">1</span>]);
+
+   <span class="cmt">// Price is back at or above middle band (mean reversion target hit)</span>
+   <span class="type">bool</span> reachedMiddle = (bid >= bbMiddle[<span class="num">0</span>]);
+
+   <span class="kw">if</span>(touchedLower &amp;&amp; <span class="fn">PositionsTotal</span>() == <span class="num">0</span>)
+      trade.<span class="fn">Buy</span>(LotSize, _Symbol, ask,
+                ask - (<span class="fn">bbUpper</span>[<span class="num">0</span>] - bbLower[<span class="num">0</span>]) * <span class="num">0.5</span>,  <span class="cmt">// SL: half band width</span>
+                bbMiddle[<span class="num">0</span>]);                               <span class="cmt">// TP: at middle band</span>
+
+   <span class="kw">if</span>(reachedMiddle &amp;&amp; <span class="fn">PositionsTotal</span>() > <span class="num">0</span>)
+      trade.<span class="fn">PositionClose</span>(_Symbol);
+}</div>
+          <div class="explain-area">
+            <div class="explain-item">
+              <div class="ei-code">CopyBuffer(bbHandle, 1, ...) vs (bbHandle, 2, ...)</div>
+              <div class="ei-text"><strong>The second argument is the buffer index.</strong> For iBands specifically: 0 = middle SMA, 1 = upper band, 2 = lower band. Every indicator has its own buffer layout — you must check the MQL5 documentation for each one. Getting the buffer number wrong means you're reading the wrong data silently. <span class="why">Always double-check buffer indices in the MQL5 docs for each indicator you use.</span></div>
+            </div>
+            <div class="explain-item">
+              <div class="ei-code">close1 &lt;= bbLower[1]</div>
+              <div class="ei-text"><strong>We use the LAST COMPLETED BAR's close price (bar index 1), not the current tick.</strong> The current bar (index 0) is still forming — its close price changes every tick. Using it would generate signals mid-candle that might not exist by candle close. Using the completed bar's close (index 1) gives a confirmed, stable signal. <span class="why">Trading on completed candles is more reliable — the signal won't disappear mid-bar like it might with bar[0].</span></div>
+            </div>
+            <div class="explain-item">
+              <div class="ei-code">ask - (bbUpper[0] - bbLower[0]) * 0.5</div>
+              <div class="ei-text"><strong>This calculates a dynamic stop loss based on band width.</strong> bbUpper - bbLower = total band width. Multiplying by 0.5 gives half the band width. This is subtracted from the ask price to place the stop loss below entry. The logic: if the bands are wide (high volatility), give the trade more room. If bands are narrow, less room needed. <span class="why">Why dynamic SL? A fixed-pip stop loss ignores current market conditions. Volatility-adjusted stops are more intelligent.</span></div>
+            </div>
+            <div class="explain-item">
+              <div class="ei-code">TP: bbMiddle[0]</div>
+              <div class="ei-text"><strong>The take profit is set exactly at the middle band (the 20-period SMA).</strong> This embodies the mean reversion concept: we entered because price went to an extreme, and we expect it to return to the "mean" (average). The middle band IS that mean. <span class="why">This gives the trade a clear mathematical target. The middle band is also a common area where price finds support/resistance, making it a natural exit zone.</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="why-box info">
+          <div class="why-box-icon">📐</div>
+          <div class="why-box-text"><strong>What "standard deviation" actually means in plain English:</strong> If most prices over 20 bars closed around 1.1000, then the "standard deviation" measures how spread out those prices were. A deviation of 0.0050 means most prices were within 0.0050 of the average. Multiplied by 2, the bands sit at 1.0900 and 1.1100. When price hits 1.0900, it's 2 standard deviations below average — a statistically rare extreme.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- =================== MEAN REVERSION Z-SCORE =================== -->
+    <div id="page-meanrev" class="strategy-page">
+      <div class="s-hero">
+        <div class="s-tag-row">
+          <span class="badge badge-mean">Mean Reversion</span>
+          <span class="badge" style="background:var(--bg2);color:var(--text2);border-color:var(--border2);">Advanced</span>
+        </div>
+        <div class="s-title">Mean Reversion Z-Score Strategy</div>
+        <div class="s-intro">This is a pure statistical mean reversion strategy. Instead of using indicator lines, it directly computes a Z-Score — a number that measures how many standard deviations the current price is from its recent average. A Z-Score of +2 means price is 2 standard deviations above average. A Z-Score of -2 means 2 below. These extremes suggest the price will likely "revert to the mean" — snap back toward the average.</div>
+        <div class="s-logic-box">
+          <div class="s-logic-item"><div class="s-logic-label">Buy Signal</div><div class="s-logic-val">Z-Score &lt; -2.0 (price far below mean)</div></div>
+          <div class="s-logic-item"><div class="s-logic-label">Sell/Exit Signal</div><div class="s-logic-val">Z-Score &gt; +2.0 (price far above mean)</div></div>
+          <div class="s-logic-item"><div class="s-logic-label">Lookback Period</div><div class="s-logic-val">20 bars (configurable)</div></div>
+          <div class="s-logic-item"><div class="s-logic-label">Target</div><div class="s-logic-val">Z-Score returns to 0 (the mean)</div></div>
+        </div>
+      </div>
+
+      <div class="explainer">
+        <div class="block-section">
+          <div class="bs-header"><div class="bs-num">1</div><div class="bs-title-text">Computing Mean & Standard Deviation Manually</div></div>
+          <div class="code-area"><span class="kw">input</span> <span class="type">int</span>    LookbackPeriod = <span class="num">20</span>;
+<span class="kw">input</span> <span class="type">double</span> ZScoreThreshold = <span class="num">2.0</span>;
+
+<span class="type">double</span> <span class="fn">CalculateMean</span>(<span class="type">int</span> period)
+{
+   <span class="type">double</span> sum = <span class="num">0</span>;
+   <span class="kw">for</span>(<span class="type">int</span> i = <span class="num">1</span>; i &lt;= period; i++)
+      sum += <span class="fn">iClose</span>(_Symbol, _Period, i);
+   <span class="kw">return</span>(sum / period);
+}
+
+<span class="type">double</span> <span class="fn">CalculateStdDev</span>(<span class="type">double</span> mean, <span class="type">int</span> period)
+{
+   <span class="type">double</span> variance = <span class="num">0</span>;
+   <span class="kw">for</span>(<span class="type">int</span> i = <span class="num">1</span>; i &lt;= period; i++)
+   {
+      <span class="type">double</span> diff = <span class="fn">iClose</span>(_Symbol, _Period, i) - mean;
+      variance += diff * diff;
+   }
+   <span class="kw">return</span>(<span class="fn">MathSqrt</span>(variance / period));
+}</div>
+          <div class="explain-area">
+            <div class="explain-item">
+              <div class="ei-code">CalculateMean: sum / period</div>
+              <div class="ei-text"><strong>This manually computes the arithmetic mean (average) of the last N closing prices.</strong> The loop runs from bar 1 to bar LookbackPeriod (skipping bar 0 which is still forming). It accumulates all close prices into sum, then divides by the period. <span class="why">We start from bar 1, not bar 0, to only use confirmed closed candles — bar 0 is still live and changes every tick.</span></div>
+            </div>
+            <div class="explain-item">
+              <div class="ei-code">variance += diff * diff</div>
+              <div class="ei-text"><strong>This is the variance formula — the core of standard deviation.</strong> For each bar, we calculate how far its close is from the mean (diff). Then we square it (diff * diff). Squaring serves two purposes: it makes negative differences positive, and it amplifies large deviations more than small ones. We sum all these squared differences, then divide by period. <span class="why">Why square? You can't average positive and negative differences — they'd cancel out. Squaring makes everything positive so the average represents total spread.</span></div>
+            </div>
+            <div class="explain-item">
+              <div class="ei-code">MathSqrt(variance / period)</div>
+              <div class="ei-text"><strong>Standard deviation = square root of variance.</strong> Taking the square root "undoes" the squaring we did earlier, bringing the unit back to the same scale as the original prices. If variance is 0.000025, std dev = 0.005, meaning prices typically varied by ±0.005 from the mean. <span class="why">MathSqrt() is MQL5's built-in square root function. The result is in the same units as price, making it interpretable.</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="block-section">
+          <div class="bs-header"><div class="bs-num">2</div><div class="bs-title-text">Z-Score Calculation & Trading</div></div>
+          <div class="code-area"><span class="kw">void</span> <span class="fn">OnTick</span>()
+{
+   <span class="type">double</span> mean   = <span class="fn">CalculateMean</span>(LookbackPeriod);
+   <span class="type">double</span> stddev = <span class="fn">CalculateStdDev</span>(mean, LookbackPeriod);
+   <span class="type">double</span> currentPrice = <span class="fn">iClose</span>(_Symbol, _Period, <span class="num">1</span>);
+
+   <span class="kw">if</span>(stddev == <span class="num">0</span>) <span class="kw">return</span>; <span class="cmt">// Avoid division by zero</span>
+
+   <span class="type">double</span> zScore = (currentPrice - mean) / stddev;
+
+   <span class="fn">Comment</span>(<span class="str">"Z-Score: "</span>, <span class="fn">DoubleToString</span>(zScore, <span class="num">2</span>),
+           <span class="str">" | Mean: "</span>, <span class="fn">DoubleToString</span>(mean, <span class="num">5</span>));
+
+   <span class="kw">if</span>(zScore &lt; -ZScoreThreshold &amp;&amp; <span class="fn">PositionsTotal</span>() == <span class="num">0</span>)
+      trade.<span class="fn">Buy</span>(LotSize, _Symbol); <span class="cmt">// Price far below mean — buy</span>
+
+   <span class="kw">if</span>(zScore > ZScoreThreshold &amp;&amp; <span class="fn">PositionsTotal</span>() > <span class="num">0</span>)
+      trade.<span class="fn">PositionClose</span>(_Symbol); <span class="cmt">// Price far above mean — exit</span>
+}</div>
+          <div class="explain-area">
+            <div class="explain-item">
+              <div class="ei-code">zScore = (currentPrice - mean) / stddev</div>
+              <div class="ei-text"><strong>This is the Z-Score formula — one of the most important formulas in statistics.</strong> It answers: "How many standard deviations away from the mean is the current price?" <br><br>• Z = 0 means price is exactly at the mean (normal)<br>• Z = +2 means price is 2 standard deviations ABOVE mean (extreme high)<br>• Z = -2 means price is 2 standard deviations BELOW mean (extreme low)<br><br><span class="why">Why divide by stddev? It normalizes the distance. Without it, a 50-pip move on USDJPY (which trades at 150) is very different from a 50-pip move on EURUSD (at 1.10). Z-Score makes them comparable.</span></div>
+            </div>
+            <div class="explain-item">
+              <div class="ei-code">if(stddev == 0) return</div>
+              <div class="ei-text"><strong>Critical safety check — prevents a division by zero crash.</strong> stddev would be 0 if all bars in the lookback period had exactly the same close price (impossible in real markets, but possible during weekend gaps or synthetic data). Division by zero in MQL5 doesn't crash the program but produces NaN (Not a Number), which will corrupt all calculations using that value downstream. <span class="why">Always validate before dividing. This is defensive programming — never assume your inputs are safe.</span></div>
+            </div>
+            <div class="explain-item">
+              <div class="ei-code">Comment("Z-Score: ", ...)</div>
+              <div class="ei-text"><strong>Comment() displays text on the chart in the top-left corner.</strong> This is invaluable for debugging and monitoring — you can see the Z-Score updating in real time as the EA runs. DoubleToString(value, 2) converts a double to a string with 2 decimal places. <span class="why">Always add visual feedback to your EAs during development. Watching the Z-Score move helps you understand how the strategy behaves before committing real money.</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="why-box tip">
+          <div class="why-box-icon">📊</div>
+          <div class="why-box-text"><strong>Z-Score vs Bollinger Bands — what's the difference?</strong> They're mathematically almost identical! Bollinger Bands ARE a visual representation of Z-Score bands. When price touches the upper Bollinger Band, its Z-Score is approximately +2. The Z-Score strategy gives you the raw number directly, letting you set precise thresholds like 1.5 or 2.5, rather than being tied to a specific band width setting.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- =================== MACD =================== -->
+    <div id="page-macd" class="strategy-page">
+      <div class="s-hero">
+        <div class="s-tag-row">
+          <span class="badge badge-trend">Trend Following</span>
+          <span class="badge" style="background:var(--bg2);color:var(--text2);border-color:var(--border2);">Intermediate</span>
+        </div>
+        <div class="s-title">MACD Strategy</div>
+        <div class="s-intro">MACD (Moving Average Convergence Divergence) is built from three components: the MACD line (difference between 12-period and 26-period EMAs), the Signal line (9-period EMA of MACD), and the Histogram (MACD minus Signal). When the MACD line crosses above the Signal line, it signals that short-term momentum is accelerating above long-term momentum — a bullish sign. It's a more sophisticated version of the EMA crossover that also quantifies how strong the trend is.</div>
+        <div class="s-logic-box">
+          <div class="s-logic-item"><div class="s-logic-label">Buy Signal</div><div class="s-logic-val">MACD crosses above Signal line</div></div>
+          <div class="s-logic-item"><div class="s-logic-label">Sell Signal</div><div class="s-logic-val">MACD crosses below Signal line</div></div>
+          <div class="s-logic-item"><div class="s-logic-label">Parameters</div><div class="s-logic-val">Fast: 12 | Slow: 26 | Signal: 9</div></div>
+          <div class="s-logic-item"><div class="s-logic-label">Extra Filter</div><div class="s-logic-val">Only trade when Histogram expands</div></div>
+        </div>
+      </div>
+
+      <div class="explainer">
+        <div class="block-section">
+          <div class="bs-header"><div class="bs-num">1</div><div class="bs-title-text">MACD Handle & Three Buffers</div></div>
+          <div class="code-area"><span class="type">int</span>    macdHandle;
+<span class="type">double</span> macdLine[<span class="num">3</span>], signalLine[<span class="num">3</span>], histogram[<span class="num">3</span>];
+
+<span class="type">int</span> <span class="fn">OnInit</span>()
+{
+   macdHandle = <span class="fn">iMACD</span>(_Symbol, _Period, <span class="num">12</span>, <span class="num">26</span>, <span class="num">9</span>, PRICE_CLOSE);
+   <span class="kw">if</span>(macdHandle == INVALID_HANDLE) <span class="kw">return</span>(INIT_FAILED);
+   <span class="kw">return</span>(INIT_SUCCEEDED);
+}</div>
+          <div class="explain-area">
+            <div class="explain-item">
+              <div class="ei-code">iMACD(_Symbol, _Period, 12, 26, 9, PRICE_CLOSE)</div>
+              <div class="ei-text"><strong>Creates the MACD indicator with the classic parameters.</strong><br><br>
+                • <strong>12</strong> — Fast EMA period. Reacts quickly to recent price changes.<br>
+                • <strong>26</strong> — Slow EMA period. Moves more smoothly, representing longer-term trend.<br>
+                • <strong>9</strong> — Signal line period. A 9-period EMA of the MACD line itself, smoothing out noise.<br><br>
+                MACD Line = EMA(12) - EMA(26). When this is positive, the fast EMA is above slow = bullish. When negative = bearish. <span class="why">The 12/26/9 combination was chosen by MACD's creator Gerald Appel and has remained the standard for 40+ years because it balances sensitivity and reliability.</span></div>
+            </div>
+            <div class="explain-item">
+              <div class="ei-code">macdLine, signalLine, histogram</div>
+              <div class="ei-text"><strong>MACD has 3 buffers:</strong> buffer 0 = MACD line, buffer 1 = Signal line, buffer 2 = Histogram. We create three separate arrays because we need all three for the full strategy. The histogram (MACD - Signal) is especially useful because when it's growing (increasing), momentum is accelerating in that direction. <span class="why">Using all three buffers gives much richer signals than just the crossover alone.</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="block-section">
+          <div class="bs-header"><div class="bs-num">2</div><div class="bs-title-text">MACD Crossover with Histogram Confirmation</div></div>
+          <div class="code-area"><span class="kw">void</span> <span class="fn">OnTick</span>()
+{
+   <span class="kw">if</span>(<span class="fn">CopyBuffer</span>(macdHandle, <span class="num">0</span>, <span class="num">0</span>, <span class="num">3</span>, macdLine)   < <span class="num">3</span>) <span class="kw">return</span>;
+   <span class="kw">if</span>(<span class="fn">CopyBuffer</span>(macdHandle, <span class="num">1</span>, <span class="num">0</span>, <span class="num">3</span>, signalLine) < <span class="num">3</span>) <span class="kw">return</span>;
+   <span class="kw">if</span>(<span class="fn">CopyBuffer</span>(macdHandle, <span class="num">2</span>, <span class="num">0</span>, <span class="num">3</span>, histogram)  < <span class="num">3</span>) <span class="kw">return</span>;
+
+   <span class="cmt">// Crossover: MACD crossed above Signal on previous bar</span>
+   <span class="type">bool</span> bullCross = (macdLine[<span class="num">2</span>] &lt; signalLine[<span class="num">2</span>]) &amp;&amp;
+                    (macdLine[<span class="num">1</span>] > signalLine[<span class="num">1</span>]);
+
+   <span class="cmt">// Histogram confirmation: momentum is growing (not fading)</span>
+   <span class="type">bool</span> histGrowing = (histogram[<span class="num">1</span>] > histogram[<span class="num">2</span>]);
+
+   <span class="type">bool</span> bearCross = (macdLine[<span class="num">2</span>] > signalLine[<span class="num">2</span>]) &amp;&amp;
+                    (macdLine[<span class="num">1</span>] &lt; signalLine[<span class="num">1</span>]);
+
+   <span class="kw">if</span>(bullCross &amp;&amp; histGrowing &amp;&amp; <span class="fn">PositionsTotal</span>() == <span class="num">0</span>)
+      trade.<span class="fn">Buy</span>(LotSize, _Symbol);
+
+   <span class="kw">if</span>(bearCross &amp;&amp; <span class="fn">PositionsTotal</span>() > <span class="num">0</span>)
+      trade.<span class="fn">PositionClose</span>(_Symbol);
+}</div>
+          <div class="explain-area">
+            <div class="explain-item">
+              <div class="ei-code">macdLine[2] vs macdLine[1]</div>
+              <div class="ei-text"><strong>We're looking at bars [2] and [1], not [0] and [1].</strong> This is because we want to detect a crossover that happened on the LAST COMPLETED bar (index 1). To know it crossed, we need to compare it to the bar before that (index 2). Bar [0] is the current forming candle — we intentionally avoid it for confirmed signals. <span class="why">Waiting for bar close confirmation prevents reacting to intrabar MACD fluctuations that reverse before the candle closes.</span></div>
+            </div>
+            <div class="explain-item">
+              <div class="ei-code">histGrowing = histogram[1] > histogram[2]</div>
+              <div class="ei-text"><strong>This is an additional confirmation filter — one of the best enhancements to the basic MACD crossover.</strong> The histogram represents how fast the MACD and Signal lines are diverging. If the histogram is growing (getting more positive) after a bullish cross, it means momentum is accelerating in the buy direction. If histogram is already shrinking right after the cross, the move may already be fading. <span class="why">A crossover with growing histogram = strong signal. A crossover with shrinking histogram = weak signal, likely to fail. This single filter can significantly improve win rate.</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="why-box info">
+          <div class="why-box-icon">💡</div>
+          <div class="why-box-text"><strong>MACD vs EMA Crossover — why is MACD "better"?</strong> A 12/26 EMA crossover generates a signal when the two EMAs cross. MACD generates a signal when the DIFFERENCE between those EMAs crosses its own average. This second layer of averaging makes MACD signals slightly smoother and more reliable, with fewer false crossovers in choppy conditions. The histogram also gives you a preview of weakening momentum before the signal line actually crosses.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- =================== BREAKOUT =================== -->
+    <div id="page-breakout" class="strategy-page">
+      <div class="s-hero">
+        <div class="s-tag-row">
+          <span class="badge badge-volatility">Breakout</span>
+          <span class="badge" style="background:var(--bg2);color:var(--text2);border-color:var(--border2);">Intermediate</span>
+        </div>
+        <div class="s-title">Donchian Channel Breakout Strategy</div>
+        <div class="s-intro">Donchian Channels plot the highest high and lowest low over N periods. When price breaks above the upper channel line, it means price has hit a new N-period high — this signals strong bullish momentum (breakout). The strategy made famous by the "Turtle Traders" experiment in the 1980s, which turned a group of non-traders into multi-millionaires by systematically following breakouts. The underlying idea: if price is making new highs, the trend is likely continuing.</div>
+        <div class="s-logic-box">
+          <div class="s-logic-item"><div class="s-logic-label">Buy Signal</div><div class="s-logic-val">Price breaks above 20-bar high</div></div>
+          <div class="s-logic-item"><div class="s-logic-label">Exit Signal</div><div class="s-logic-val">Price breaks below 10-bar low</div></div>
+          <div class="s-logic-item"><div class="s-logic-label">Entry Channel</div><div class="s-logic-val">20 periods (breakout confirmation)</div></div>
+          <div class="s-logic-item"><div class="s-logic-label">Exit Channel</div><div class="s-logic-val">10 periods (shorter = tighter exit)</div></div>
+        </div>
+      </div>
+
+      <div class="explainer">
+        <div class="block-section">
+          <div class="bs-header"><div class="bs-num">1</div><div class="bs-title-text">Computing Donchian Channels Manually</div></div>
+          <div class="code-area"><span class="kw">input</span> <span class="type">int</span> EntryPeriod = <span class="num">20</span>;
+<span class="kw">input</span> <span class="type">int</span> ExitPeriod  = <span class="num">10</span>;
+
+<span class="type">double</span> <span class="fn">GetHighestHigh</span>(<span class="type">int</span> period)
+{
+   <span class="type">double</span> highest = <span class="fn">iHigh</span>(_Symbol, _Period, <span class="num">1</span>);
+   <span class="kw">for</span>(<span class="type">int</span> i = <span class="num">2</span>; i &lt;= period; i++)
+   {
+      <span class="type">double</span> h = <span class="fn">iHigh</span>(_Symbol, _Period, i);
+      <span class="kw">if</span>(h > highest) highest = h;
+   }
+   <span class="kw">return</span>(highest);
+}
+
+<span class="type">double</span> <span class="fn">GetLowestLow</span>(<span class="type">int</span> period)
+{
+   <span class="type">double</span> lowest = <span class="fn">iLow</span>(_Symbol, _Period, <span class="num">1</span>);
+   <span class="kw">for</span>(<span class="type">int</span> i = <span class="num">2</span>; i &lt;= period; i++)
+   {
+      <span class="type">double</span> l = <span class="fn">iLow</span>(_Symbol, _Period, i);
+      <span class="kw">if</span>(l &lt; lowest) lowest = l;
+   }
+   <span class="kw">return</span>(lowest);
+}</div>
+          <div class="explain-area">
+            <div class="explain-item">
+              <div class="ei-code">double highest = iHigh(..., 1)</div>
+              <div class="ei-text"><strong>Initialize the highest value with bar 1's high, then compare against all other bars.</strong> Starting at bar 1 (not 0) means we only use closed candles. The loop then checks each subsequent bar — if any bar's high is higher than what we have, it becomes the new "highest." This is a simple linear scan for the maximum. <span class="why">Why not use MQL5's iHighest() built-in? We could! iHighest() does exactly this. Writing it manually helps you understand what's happening under the hood.</span></div>
+            </div>
+            <div class="explain-item">
+              <div class="ei-code">EntryPeriod=20, ExitPeriod=10</div>
+              <div class="ei-text"><strong>The asymmetry between entry and exit periods is intentional and important.</strong> A 20-bar breakout means price must make a new 4-week high to trigger entry — a meaningful level. The 10-bar exit (2-week low) triggers faster, giving back less profit when the trend reverses. This asymmetry was the core of the Turtle Traders' risk management: enter on big breakouts, exit on smaller reversals. <span class="why">Exit period &lt; Entry period = you exit before another entry signal would form in the opposite direction. Keeps trades from overstaying their welcome.</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="block-section">
+          <div class="bs-header"><div class="bs-num">2</div><div class="bs-title-text">Breakout Entry & ATR-Based Stop Loss</div></div>
+          <div class="code-area"><span class="type">int</span> atrHandle;
+
+<span class="type">int</span> <span class="fn">OnInit</span>()
+{
+   atrHandle = <span class="fn">iATR</span>(_Symbol, _Period, <span class="num">14</span>);
+   <span class="kw">if</span>(atrHandle == INVALID_HANDLE) <span class="kw">return</span>(INIT_FAILED);
+   <span class="kw">return</span>(INIT_SUCCEEDED);
+}
+
+<span class="kw">void</span> <span class="fn">OnTick</span>()
+{
+   <span class="type">double</span> atrValues[<span class="num">2</span>];
+   <span class="kw">if</span>(<span class="fn">CopyBuffer</span>(atrHandle, <span class="num">0</span>, <span class="num">0</span>, <span class="num">2</span>, atrValues) < <span class="num">2</span>) <span class="kw">return</span>;
+
+   <span class="type">double</span> atr     = atrValues[<span class="num">1</span>]; <span class="cmt">// ATR of last completed bar</span>
+   <span class="type">double</span> highest = <span class="fn">GetHighestHigh</span>(EntryPeriod);
+   <span class="type">double</span> lowest  = <span class="fn">GetLowestLow</span>(ExitPeriod);
+   <span class="type">double</span> ask     = <span class="fn">SymbolInfoDouble</span>(_Symbol, SYMBOL_ASK);
+   <span class="type">double</span> bid     = <span class="fn">SymbolInfoDouble</span>(_Symbol, SYMBOL_BID);
+
+   <span class="type">bool</span> newHigh = (ask > highest);
+   <span class="type">bool</span> newLow  = (bid &lt; lowest);
+
+   <span class="kw">if</span>(newHigh &amp;&amp; <span class="fn">PositionsTotal</span>() == <span class="num">0</span>)
+      trade.<span class="fn">Buy</span>(LotSize, _Symbol, ask,
+                ask - (<span class="num">2</span> * atr),  <span class="cmt">// Stop loss: 2 ATR below entry</span>
+                ask + (<span class="num">4</span> * atr)); <span class="cmt">// Take profit: 4 ATR above entry (2:1 RR)</span>
+
+   <span class="kw">if</span>(newLow &amp;&amp; <span class="fn">PositionsTotal</span>() > <span class="num">0</span>)
+      trade.<span class="fn">PositionClose</span>(_Symbol);
+}</div>
+          <div class="explain-area">
+            <div class="explain-item">
+              <div class="ei-code">iATR(_Symbol, _Period, 14)</div>
+              <div class="ei-text"><strong>ATR = Average True Range — the most important volatility measurement in trading.</strong> It calculates the average "range" of each candle over the last 14 bars, where range = max of: (High-Low), (|High-PrevClose|), (|Low-PrevClose|). A high ATR means the market is moving a lot. A low ATR means it's quiet. <span class="why">We use ATR to set our stop loss because fixed-pip stops are dumb — in a volatile market, a 20-pip stop will be hit by noise; in a quiet market, a 20-pip stop is too wide. ATR-based stops adapt to current conditions.</span></div>
+            </div>
+            <div class="explain-item">
+              <div class="ei-code">StopLoss: ask - (2 * atr)</div>
+              <div class="ei-text"><strong>The stop loss is placed 2 ATRs below the entry price.</strong> If ATR = 0.0050 (50 pips), then stop = entry - 0.0100 (100 pips below). This gives the trade enough room to breathe — normal market noise shouldn't exceed 2 ATRs. The Turtle Traders used exactly this: 2N (N = ATR) as their stop. <span class="why">Why 2x? 1x ATR is often too tight (hit by normal fluctuations). 3x ATR means you accept large losses. 2x is the sweet spot between giving the trade room and limiting damage.</span></div>
+            </div>
+            <div class="explain-item">
+              <div class="ei-code">TakeProfit: ask + (4 * atr)</div>
+              <div class="ei-text"><strong>The take profit is 4 ATRs above entry, giving a 2:1 reward-to-risk ratio.</strong> SL = 2 ATR, TP = 4 ATR means for every dollar risked, we target 2 dollars profit. With a 2:1 ratio, you only need to be right 34% of the time to break even. Breakout strategies are right maybe 40-50% of the time, which becomes profitable with this ratio. <span class="why">Risk:Reward ratio is arguably more important than win rate. A 30% win rate with 3:1 RR is more profitable than a 60% win rate with 0.5:1 RR. Always define your RR before trading.</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="why-box tip">
+          <div class="why-box-icon">🐢</div>
+          <div class="why-box-text"><strong>The Turtle Traders story:</strong> In 1983, Richard Dennis bet his partner that he could teach a random group of people to trade profitably. He recruited 23 people, taught them the Donchian breakout system (very similar to this code), and in 5 years they collectively earned over $175 million. This proved systematic, rule-based trading with proper risk management works — and that's exactly what MQL5 EAs let you do.</div>
+        </div>
+        <div class="why-box warn">
+          <div class="why-box-icon">⚠️</div>
+          <div class="why-box-text"><strong>Breakout strategies suffer during ranging markets.</strong> If price oscillates between the same high and low repeatedly, you'll get false breakout signals above the high that quickly reverse. Always check if a market is trending (using ADX > 25) before applying a breakout strategy.</div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+</div><!-- /wrap -->
+
+<script>
+function showStrategy(id, btn) {
+  document.querySelectorAll('.strategy-page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.sb-item').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  btn.classList.add('active');
+  const titles = {
+    ema: ['EMA Crossover Strategy', 'badge-trend', 'Trend Following'],
+    rsi: ['RSI Overbought / Oversold', 'badge-oscillator', 'Oscillator'],
+    bollinger: ['Bollinger Bands Strategy', 'badge-mean', 'Mean Reversion'],
+    meanrev: ['Mean Reversion Z-Score', 'badge-mean', 'Mean Reversion'],
+    macd: ['MACD Strategy', 'badge-trend', 'Trend Following'],
+    breakout: ['Donchian Channel Breakout', 'badge-volatility', 'Breakout'],
+  };
+  const t = titles[id];
+  document.getElementById('topTitle').textContent = t[0];
+  const badge = document.getElementById('topBadge');
+  badge.className = 'badge ' + t[1];
+  badge.textContent = t[2];
+  window.scrollTo(0, 0);
+}
+
+function copyCode(id) {
+  const el = document.getElementById(id);
+  const text = el.innerText;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = event.target;
+    btn.textContent = 'Copied!';
+    setTimeout(() => btn.textContent = 'Copy', 1800);
+  });
+}
+</script>
+</body>
+</html>
